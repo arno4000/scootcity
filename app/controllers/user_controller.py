@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from base64 import b64encode
-from datetime import datetime
 import math
 
 from flask import (
@@ -18,8 +17,10 @@ from sqlalchemy import func
 from app.extensions import db
 from app.models import Payment, PaymentMethod, Ride, User, Vehicle
 from app.utils.auth import get_current_account, login_required
+from app.utils.db import get_or_404
 from app.utils.vehicle import apply_battery_drain
 from app.utils.qr import build_vehicle_qr_payload, generate_qr_png
+from app.utils.time import as_utc, utcnow
 
 
 user_bp = Blueprint("user", __name__)
@@ -94,7 +95,11 @@ def dashboard():
 def start_ride():
     account, _ = get_current_account()
     vehicle_id = request.form.get("vehicle_id")
-    vehicle = Vehicle.query.get(vehicle_id)
+    try:
+        vehicle_pk = int(vehicle_id)
+    except (TypeError, ValueError):
+        vehicle_pk = None
+    vehicle = db.session.get(Vehicle, vehicle_pk) if vehicle_pk else None
     if not vehicle or vehicle.status != "verfuegbar":
         flash("Fahrzeug kann nicht gebucht werden.", "danger")
         return redirect(url_for("user.dashboard"))
@@ -131,7 +136,7 @@ def start_ride():
 
 @user_bp.route("/unlock/<int:vehicle_id>", methods=["GET", "POST"])
 def unlock_vehicle(vehicle_id: int):
-    vehicle = Vehicle.query.get_or_404(vehicle_id)
+    vehicle = get_or_404(Vehicle, vehicle_id)
     qr_code = request.args.get("code")
     if qr_code and vehicle.qr_code != qr_code:
         flash("Ungültiger QR-Code.", "danger")
@@ -182,7 +187,7 @@ def unlock_vehicle(vehicle_id: int):
 @login_required(["user"])
 def end_ride(ride_id: int):
     account, _ = get_current_account()
-    ride = Ride.query.get_or_404(ride_id)
+    ride = get_or_404(Ride, ride_id)
     if ride.user_id != account.id or not ride.is_active():
         flash("Diese Fahrt kann nicht beendet werden.", "danger")
         return redirect(url_for("user.dashboard"))
@@ -197,8 +202,9 @@ def end_ride(ride_id: int):
             ).first()
         )
 
-    now = datetime.utcnow()
-    minutes = max(1, math.ceil((now - ride.start_time).total_seconds() / 60))
+    now = utcnow()
+    start_time = as_utc(ride.start_time) or now
+    minutes = max(1, math.ceil((now - start_time).total_seconds() / 60))
     base_rate = ride.base_rate or current_app.config["BASE_RATE"]
     per_minute_rate = ride.per_minute_rate or current_app.config["PER_MINUTE_RATE"]
     cost = base_rate + minutes * per_minute_rate
@@ -266,7 +272,7 @@ def payment_methods():
 def delete_payment_method(method_id: int):
     account, _ = get_current_account()
     redirect_target = request.form.get("next")
-    method = PaymentMethod.query.get_or_404(method_id)
+    method = get_or_404(PaymentMethod, method_id)
     if method.user_id != account.id:
         flash("Keine Berechtigung dieses Zahlungsmittel zu entfernen.", "danger")
         return redirect(url_for("user.payment_methods"))

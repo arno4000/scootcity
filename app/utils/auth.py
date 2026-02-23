@@ -5,6 +5,7 @@ from typing import Optional, Sequence, Tuple
 
 from flask import abort, flash, redirect, request, session, url_for
 
+from app.extensions import db
 from app.models import Provider, User
 
 def _resolve_logged_in_account() -> Tuple[Optional[object], Optional[str]]:
@@ -13,9 +14,9 @@ def _resolve_logged_in_account() -> Tuple[Optional[object], Optional[str]]:
     if not role or not account_id:
         return None, None
     if role == "user":
-        return User.query.get(account_id), role
+        return db.session.get(User, account_id), role
     if role == "provider":
-        return Provider.query.get(account_id), role
+        return db.session.get(Provider, account_id), role
     return None, None
 
 

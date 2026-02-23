@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from datetime import datetime
 import secrets
 
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from app.extensions import db
+from app.utils.time import utcnow
 
 
 class Provider(db.Model):
@@ -19,7 +19,7 @@ class Provider(db.Model):
     password_hash = db.Column(db.String(255), nullable=False)
     typ = db.Column(db.String(50), default="privat")
     api_token = db.Column(db.String(64), unique=True, index=True)
-    created_at = db.Column("erstellt_am", db.DateTime, default=datetime.utcnow)
+    created_at = db.Column("erstellt_am", db.DateTime, default=utcnow)
 
     # Beziehungen
     vehicles = db.relationship("Vehicle", back_populates="provider", lazy="dynamic")

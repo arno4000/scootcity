@@ -7,6 +7,7 @@ from flask import Blueprint, current_app, flash, redirect, render_template, requ
 from app.extensions import db
 from app.models import Provider, Vehicle, VehicleType
 from app.utils.auth import get_current_account, login_required
+from app.utils.db import get_or_404
 from app.utils.qr import build_vehicle_qr_payload, generate_qr_png
 
 
@@ -101,7 +102,7 @@ def add_vehicle_type():
 @login_required(["provider"])
 def update_vehicle(vehicle_id: int):
     provider, _ = get_current_account()
-    vehicle = Vehicle.query.get_or_404(vehicle_id)
+    vehicle = get_or_404(Vehicle, vehicle_id)
     if vehicle.provider_id != provider.id:
         flash("Keine Berechtigung für dieses Fahrzeug.", "danger")
         return redirect(url_for("provider.dashboard"))

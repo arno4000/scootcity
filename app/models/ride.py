@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from datetime import datetime
-
 from app.extensions import db
+from app.utils.time import utcnow
 
 
 class Ride(db.Model):
@@ -14,7 +13,7 @@ class Ride(db.Model):
     vehicle_id = db.Column(
         "fahrzeug_id", db.Integer, db.ForeignKey("fahrzeug.fahrzeug_id")
     )
-    start_time = db.Column("startzeit", db.DateTime, default=datetime.utcnow)
+    start_time = db.Column("startzeit", db.DateTime, default=utcnow)
     end_time = db.Column("endzeit", db.DateTime)
     kilometers = db.Column("kilometer", db.Float, default=0.0)
     cost = db.Column("kosten", db.Float, default=0.0)

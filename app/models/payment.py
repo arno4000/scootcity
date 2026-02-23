@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from datetime import datetime
-
 from app.extensions import db
+from app.utils.time import utcnow
 
 
 class PaymentMethod(db.Model):
@@ -14,7 +13,7 @@ class PaymentMethod(db.Model):
     method_type = db.Column("typ", db.String(50), nullable=False)
     details = db.Column(db.String(255), nullable=False)
     is_active = db.Column("ist_aktiv", db.Boolean, default=True)
-    created_at = db.Column("erstellt_am", db.DateTime, default=datetime.utcnow)
+    created_at = db.Column("erstellt_am", db.DateTime, default=utcnow)
 
     # Beziehungen
     user = db.relationship("User", back_populates="payment_methods")
@@ -32,7 +31,7 @@ class Payment(db.Model):
     payment_method_id = db.Column(
         "zahlungsmittel_id", db.Integer, db.ForeignKey("zahlungsmittel.zahlungsmittel_id")
     )
-    timestamp = db.Column("zeitpunkt", db.DateTime, default=datetime.utcnow)
+    timestamp = db.Column("zeitpunkt", db.DateTime, default=utcnow)
     amount = db.Column("betrag", db.Float, nullable=False)
     status = db.Column(db.String(50), default="offen")
 

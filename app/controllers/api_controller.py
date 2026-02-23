@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from datetime import datetime
 import math
 
 from flask import Blueprint, current_app, jsonify, render_template, request
@@ -8,9 +7,11 @@ from flask import Blueprint, current_app, jsonify, render_template, request
 from app.extensions import db
 from app.models import Payment, PaymentMethod, Provider, Ride, User, Vehicle, VehicleType
 from app.utils.auth import role_required, token_auth_required
+from app.utils.db import get_or_404
 from app.utils.qr import build_vehicle_qr_payload, generate_qr_png
 from app.utils.vehicle import apply_battery_drain
 from app.api_spec import SPEC
+from app.utils.time import as_utc, utcnow
 
 
 api_bp = Blueprint("api", __name__)
@@ -148,7 +149,7 @@ def create_vehicle_api(account, role):
 @api_bp.route("/vehicles/<int:vehicle_id>", methods=["GET"])
 @token_auth_required()
 def vehicle_detail(account, role, vehicle_id: int):
-    vehicle = Vehicle.query.get_or_404(vehicle_id)
+    vehicle = get_or_404(Vehicle, vehicle_id)
     if role == "provider" and vehicle.provider_id != account.id:
         return jsonify({"error": "Keine Berechtigung"}), 403
     return jsonify(vehicle.to_dict())
@@ -157,7 +158,7 @@ def vehicle_detail(account, role, vehicle_id: int):
 @api_bp.route("/vehicles/<int:vehicle_id>", methods=["PATCH", "PUT"])
 @token_auth_required(["provider"])
 def update_vehicle_api(account, role, vehicle_id: int):
-    vehicle = Vehicle.query.get_or_404(vehicle_id)
+    vehicle = get_or_404(Vehicle, vehicle_id)
     if vehicle.provider_id != account.id:
         return jsonify({"error": "Keine Berechtigung"}), 403
 
@@ -184,7 +185,7 @@ def update_vehicle_api(account, role, vehicle_id: int):
 @api_bp.route("/vehicles/<int:vehicle_id>", methods=["DELETE"])
 @token_auth_required(["provider"])
 def delete_vehicle_api(account, role, vehicle_id: int):
-    vehicle = Vehicle.query.get_or_404(vehicle_id)
+    vehicle = get_or_404(Vehicle, vehicle_id)
     if vehicle.provider_id != account.id:
         return jsonify({"error": "Keine Berechtigung"}), 403
     db.session.delete(vehicle)
@@ -204,9 +205,13 @@ def ride_list(account, role):
 def start_ride_api(account, role):
     payload = request.get_json(silent=True) or {}
     vehicle_id = payload.get("vehicle_id")
-    if not vehicle_id:
+    try:
+        vehicle_id_int = int(vehicle_id)
+    except (TypeError, ValueError):
+        vehicle_id_int = None
+    if not vehicle_id_int:
         return jsonify({"error": "vehicle_id ist erforderlich."}), 400
-    vehicle = Vehicle.query.get(vehicle_id)
+    vehicle = db.session.get(Vehicle, vehicle_id_int)
     if not vehicle or vehicle.status != "verfuegbar":
         return jsonify({"error": "Fahrzeug nicht verfügbar."}), 400
 
@@ -241,7 +246,7 @@ def start_ride_api(account, role):
 @api_bp.route("/rides/<int:ride_id>/end", methods=["POST"])
 @token_auth_required(["user"])
 def end_ride_api(account, role, ride_id: int):
-    ride = Ride.query.get_or_404(ride_id)
+    ride = get_or_404(Ride, ride_id)
     if ride.user_id != account.id or not ride.end_time is None:
         return jsonify({"error": "Diese Fahrt kann nicht beendet werden."}), 400
 
@@ -256,8 +261,9 @@ def end_ride_api(account, role, ride_id: int):
             ).first()
         )
 
-    now = datetime.utcnow()
-    minutes = max(1, math.ceil((now - ride.start_time).total_seconds() / 60))
+    now = utcnow()
+    start_time = as_utc(ride.start_time) or now
+    minutes = max(1, math.ceil((now - start_time).total_seconds() / 60))
     base_rate = ride.base_rate or current_app.config["BASE_RATE"]
     per_minute_rate = ride.per_minute_rate or current_app.config["PER_MINUTE_RATE"]
     cost = base_rate + minutes * per_minute_rate
@@ -327,7 +333,7 @@ def create_payment_method_api(account, role):
 @api_bp.route("/payment-methods/<int:method_id>", methods=["DELETE"])
 @token_auth_required(["user"])
 def delete_payment_method_api(account, role, method_id: int):
-    method = PaymentMethod.query.get_or_404(method_id)
+    method = get_or_404(PaymentMethod, method_id)
     if method.user_id != account.id:
         return jsonify({"error": "Keine Berechtigung"}), 403
     if not method.is_active:
@@ -378,7 +384,7 @@ def swagger_ui():
 @api_bp.route("/vehicles/<int:vehicle_id>/qr")
 @token_auth_required()
 def vehicle_qr(account, role, vehicle_id: int):
-    vehicle = Vehicle.query.get_or_404(vehicle_id)
+    vehicle = get_or_404(Vehicle, vehicle_id)
     if role == "provider" and vehicle.provider_id != account.id:
         return jsonify({"error": "Keine Berechtigung"}), 403
     if role == "user" and vehicle.status != "verfuegbar":

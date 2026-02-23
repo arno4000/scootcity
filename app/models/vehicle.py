@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from datetime import datetime
-
 from app.extensions import db
+from app.utils.time import utcnow
 
 
 class Vehicle(db.Model):
@@ -25,7 +24,7 @@ class Vehicle(db.Model):
     gps_long = db.Column(db.Float, default=0.0)
     # QR-Code dient als eindeutiger Unlock-Schluessel
     qr_code = db.Column(db.String(120), unique=True, nullable=False)
-    created_at = db.Column("erstellt_am", db.DateTime, default=datetime.utcnow)
+    created_at = db.Column("erstellt_am", db.DateTime, default=utcnow)
 
     # Beziehungen
     provider = db.relationship("Provider", back_populates="vehicles")

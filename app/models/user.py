@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from datetime import datetime
 import secrets
 
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from app.extensions import db
+from app.utils.time import utcnow
 
 
 class User(db.Model):
@@ -18,7 +18,7 @@ class User(db.Model):
     # Passwort wird gehasht gespeichert (nie im Klartext)
     password_hash = db.Column(db.String(255), nullable=False)
     api_token = db.Column(db.String(64), unique=True, index=True)
-    created_at = db.Column("erstellt_am", db.DateTime, default=datetime.utcnow)
+    created_at = db.Column("erstellt_am", db.DateTime, default=utcnow)
 
     # Beziehungen
     rides = db.relationship("Ride", back_populates="user", lazy="dynamic")
