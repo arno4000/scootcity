@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Neues Fahrzeug anlegen</h2>
+<form method="post" class="row g-3">
+  <div class="col-md-4">
+    <label class="form-label">Fahrzeugtyp</label>
+    <select class="form-select" name="vehicle_type">
+      {% for vtype in vehicle_types %}
+        <option value="{{ vtype }}" {% if vtype == selected_type %}selected{% endif %}>{{ vtype }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-md-4">
+    <label class="form-label">Status</label>
+    <select class="form-select" name="status">
+      <option value="verfuegbar">verfuegbar</option>
+      <option value="wartung">wartung</option>
+      <option value="deaktiviert">deaktiviert</option>
+    </select>
+  </div>
+  <div class="col-md-4">
+    <label class="form-label">QR-Code</label>
+    <input type="text" class="form-control" name="qr_code" required>
+  </div>
+  <div class="col-md-4">
+    <label class="form-label">Batterie %</label>
+    <input type="number" class="form-control" name="battery_level" value="100" min="0" max="100">
+  </div>
+  <div class="col-md-4">
+    <label class="form-label">Latitude</label>
+    <input type="number" class="form-control" step="0.0001" name="gps_lat" value="47.3769">
+  </div>
+  <div class="col-md-4">
+    <label class="form-label">Longitude</label>
+    <input type="number" class="form-control" step="0.0001" name="gps_long" value="8.5417">
+  </div>
+  <div class="col-12">
+    <button class="btn btn-success">Speichern</button>
+    <a href="{{ url_for('provider.dashboard') }}" class="btn btn-link">Zurück</a>
+  </div>
+</form>
+<div class="card mt-4">
+  <div class="card-body">
+    <h5 class="card-title">Neuen Fahrzeugtyp hinzufügen</h5>
+    <form method="post" action="{{ url_for('provider.add_vehicle_type') }}" class="row g-2">
+      <div class="col-md-6">
+        <input type="text" class="form-control" name="new_vehicle_type" placeholder="z.B. E-Moped" required>
+      </div>
+      <div class="col-md-3">
+        <button class="btn btn-outline-secondary w-100">Typ speichern</button>
+      </div>
+    </form>
+    <small class="text-muted">Neue Typen erscheinen sofort in der Auswahl.</small>
+  </div>
+</div>
+{% endblock %}

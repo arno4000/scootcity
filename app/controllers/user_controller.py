@@ -1,0 +1,281 @@
+from __future__ import annotations
+
+from base64 import b64encode
+from datetime import datetime
+import math
+
+from flask import (
+    Blueprint,
+    current_app,
+    flash,
+    redirect,
+    render_template,
+    request,
+    url_for,
+)
+from sqlalchemy import func
+
+from app.extensions import db
+from app.models import Payment, PaymentMethod, Ride, User, Vehicle
+from app.utils.auth import get_current_account, login_required
+from app.utils.vehicle import apply_battery_drain
+from app.utils.qr import build_vehicle_qr_payload, generate_qr_png
+
+
+user_bp = Blueprint("user", __name__)
+
+
+@user_bp.route("/")
+def landing():
+    return render_template("user/landing.html")
+
+
+@user_bp.route("/dashboard")
+@login_required(["user"])
+def dashboard():
+    # Dashboard-Daten zusammenziehen, damit die View schlank bleibt.
+    account, _ = get_current_account()
+    available_vehicles = (
+        Vehicle.query.filter_by(status="verfuegbar")
+        .order_by(Vehicle.battery_level.desc(), Vehicle.created_at.desc())
+        .limit(8)
+        .all()
+    )
+    qr_codes = {}
+    for vehicle in available_vehicles:
+        # QR direkt als Base64 fuer die UI vorbereiten.
+        payload = build_vehicle_qr_payload(
+            current_app.config["BASE_URL"], vehicle.id, vehicle.qr_code
+        )
+        qr_codes[vehicle.id] = b64encode(generate_qr_png(payload)).decode("ascii")
+    active_ride = Ride.query.filter_by(user_id=account.id, end_time=None).first()
+    payment_methods = (
+        account.payment_methods.filter_by(is_active=True)
+        .order_by(PaymentMethod.created_at.desc())
+        .all()
+    )
+    recent_rides = (
+        Ride.query.filter_by(user_id=account.id)
+        .order_by(Ride.start_time.desc())
+        .limit(5)
+        .all()
+    )
+    total_kilometers = (
+        db.session.query(func.coalesce(func.sum(Ride.kilometers), 0.0))
+        .filter(Ride.user_id == account.id)
+        .scalar()
+    )
+    total_kilometers = total_kilometers or 0.0
+    total_spent = (
+        db.session.query(func.coalesce(func.sum(Ride.cost), 0.0))
+        .filter(Ride.user_id == account.id)
+        .scalar()
+    )
+    total_spent = total_spent or 0.0
+    stats = {
+        "rides": Ride.query.filter_by(user_id=account.id).count(),
+        "kilometers": round(total_kilometers, 1),
+        "spent": round(total_spent, 2),
+    }
+    return render_template(
+        "user/dashboard.html",
+        user=account,
+        available_vehicles=available_vehicles,
+        active_ride=active_ride,
+        payment_methods=payment_methods,
+        recent_rides=recent_rides,
+        stats=stats,
+        vehicle_qr_codes=qr_codes,
+    )
+
+
+@user_bp.route("/rides/start", methods=["POST"])
+@login_required(["user"])
+def start_ride():
+    account, _ = get_current_account()
+    vehicle_id = request.form.get("vehicle_id")
+    vehicle = Vehicle.query.get(vehicle_id)
+    if not vehicle or vehicle.status != "verfuegbar":
+        flash("Fahrzeug kann nicht gebucht werden.", "danger")
+        return redirect(url_for("user.dashboard"))
+
+    active_ride = Ride.query.filter_by(user_id=account.id, end_time=None).first()
+    if active_ride:
+        flash("Sie haben bereits eine laufende Fahrt.", "warning")
+        return redirect(url_for("user.dashboard"))
+
+    base_rate = (
+        vehicle.vehicle_type.base_rate
+        if vehicle.vehicle_type and vehicle.vehicle_type.base_rate is not None
+        else current_app.config["BASE_RATE"]
+    )
+    per_minute_rate = (
+        vehicle.vehicle_type.per_minute_rate
+        if vehicle.vehicle_type and vehicle.vehicle_type.per_minute_rate is not None
+        else current_app.config["PER_MINUTE_RATE"]
+    )
+    ride = Ride(
+        user_id=account.id,
+        vehicle_id=vehicle.id,
+        base_rate=base_rate,
+        per_minute_rate=per_minute_rate,
+    )
+    vehicle.status = "in_benutzung"
+    vehicle.gps_lat = current_app.config["DEFAULT_LAT"]
+    vehicle.gps_long = current_app.config["DEFAULT_LONG"]
+    db.session.add(ride)
+    db.session.commit()
+    flash("Fahrt gestartet.", "success")
+    return redirect(url_for("user.dashboard"))
+    
+
+@user_bp.route("/unlock/<int:vehicle_id>", methods=["GET", "POST"])
+def unlock_vehicle(vehicle_id: int):
+    vehicle = Vehicle.query.get_or_404(vehicle_id)
+    qr_code = request.args.get("code")
+    if qr_code and vehicle.qr_code != qr_code:
+        flash("Ungültiger QR-Code.", "danger")
+        return redirect(url_for("user.landing"))
+
+    account, role = get_current_account()
+
+    if request.method == "POST":
+        # Unlock ist nur fuer Fahrer:innen gedacht.
+        if role != "user":
+            flash("Bitte als Fahrer:in anmelden.", "warning")
+            return redirect(url_for("auth.login"))
+        if vehicle.status != "verfuegbar":
+            flash("Fahrzeug ist aktuell nicht verfügbar.", "danger")
+            return redirect(url_for("user.dashboard"))
+        active_ride = Ride.query.filter_by(user_id=account.id, end_time=None).first()
+        if active_ride:
+            flash("Sie haben bereits eine laufende Fahrt.", "warning")
+            return redirect(url_for("user.dashboard"))
+        base_rate = (
+            vehicle.vehicle_type.base_rate
+            if vehicle.vehicle_type and vehicle.vehicle_type.base_rate is not None
+            else current_app.config["BASE_RATE"]
+        )
+        per_minute_rate = (
+            vehicle.vehicle_type.per_minute_rate
+            if vehicle.vehicle_type and vehicle.vehicle_type.per_minute_rate is not None
+            else current_app.config["PER_MINUTE_RATE"]
+        )
+        ride = Ride(
+            user_id=account.id,
+            vehicle_id=vehicle.id,
+            base_rate=base_rate,
+            per_minute_rate=per_minute_rate,
+        )
+        vehicle.status = "in_benutzung"
+        vehicle.gps_lat = current_app.config["DEFAULT_LAT"]
+        vehicle.gps_long = current_app.config["DEFAULT_LONG"]
+        db.session.add(ride)
+        db.session.commit()
+        flash("Fahrt gestartet.", "success")
+        return redirect(url_for("user.dashboard"))
+
+    return render_template("user/unlock.html", vehicle=vehicle, qr_code=qr_code, account=account, role=role)
+
+
+@user_bp.route("/rides/<int:ride_id>/end", methods=["POST"])
+@login_required(["user"])
+def end_ride(ride_id: int):
+    account, _ = get_current_account()
+    ride = Ride.query.get_or_404(ride_id)
+    if ride.user_id != account.id or not ride.is_active():
+        flash("Diese Fahrt kann nicht beendet werden.", "danger")
+        return redirect(url_for("user.dashboard"))
+
+    kilometers = float(request.form.get("kilometers", 0) or 0)
+    payment_method_id = request.form.get("payment_method_id")
+    payment_method = None
+    if payment_method_id:
+        payment_method = (
+            PaymentMethod.query.filter_by(
+                id=payment_method_id, user_id=account.id, is_active=True
+            ).first()
+        )
+
+    now = datetime.utcnow()
+    minutes = max(1, math.ceil((now - ride.start_time).total_seconds() / 60))
+    base_rate = ride.base_rate or current_app.config["BASE_RATE"]
+    per_minute_rate = ride.per_minute_rate or current_app.config["PER_MINUTE_RATE"]
+    cost = base_rate + minutes * per_minute_rate
+
+    ride.end_time = now
+    ride.kilometers = kilometers
+    ride.cost = round(cost, 2)
+    ride.vehicle.status = "verfuegbar"
+    apply_battery_drain(ride.vehicle, minutes, kilometers, current_app.config)
+
+    if payment_method:
+        payment = Payment(
+            ride_id=ride.id,
+            payment_method_id=payment_method.id,
+            amount=ride.cost,
+            status="bezahlt",
+        )
+        db.session.add(payment)
+
+    db.session.commit()
+    flash("Fahrt beendet und Kosten berechnet.", "success")
+    return redirect(url_for("user.dashboard"))
+
+
+@user_bp.route("/rides/history")
+@login_required(["user"])
+def ride_history():
+    account, _ = get_current_account()
+    rides = (
+        Ride.query.filter_by(user_id=account.id)
+        .order_by(Ride.start_time.desc())
+        .all()
+    )
+    return render_template("user/ride_history.html", rides=rides)
+
+
+@user_bp.route("/payment-methods", methods=["GET", "POST"])
+@login_required(["user"])
+def payment_methods():
+    account, _ = get_current_account()
+    if request.method == "POST":
+        method_type = request.form.get("method_type", "Kreditkarte")
+        details = request.form.get("details", "").strip()
+        redirect_target = request.form.get("next")
+        if not details:
+            flash("Bitte geben Sie Details zum Zahlungsmittel ein.", "danger")
+        else:
+            method = PaymentMethod(user_id=account.id, method_type=method_type, details=details)
+            db.session.add(method)
+            db.session.commit()
+            flash("Zahlungsmittel gespeichert.", "success")
+            endpoint = "user.dashboard" if redirect_target == "dashboard" else "user.payment_methods"
+            return redirect(url_for(endpoint))
+
+    methods = (
+        account.payment_methods.filter_by(is_active=True)
+        .order_by(PaymentMethod.created_at.desc())
+        .all()
+    )
+    return render_template("user/payment_methods.html", payment_methods=methods)
+
+
+@user_bp.route("/payment-methods/<int:method_id>/delete", methods=["POST"])
+@login_required(["user"])
+def delete_payment_method(method_id: int):
+    account, _ = get_current_account()
+    redirect_target = request.form.get("next")
+    method = PaymentMethod.query.get_or_404(method_id)
+    if method.user_id != account.id:
+        flash("Keine Berechtigung dieses Zahlungsmittel zu entfernen.", "danger")
+        return redirect(url_for("user.payment_methods"))
+    if not method.is_active:
+        flash("Zahlungsmittel wurde bereits entfernt.", "info")
+    else:
+        method.is_active = False
+        db.session.commit()
+        flash("Zahlungsmittel entfernt (nur noch für Historie sichtbar).", "success")
+
+    endpoint = "user.dashboard" if redirect_target == "dashboard" else "user.payment_methods"
+    return redirect(url_for(endpoint))

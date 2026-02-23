@@ -1,0 +1,79 @@
+erDiagram
+    direction LR
+
+    VERLEIHANBIETER {
+        int anbieter_id PK
+        string name
+        string email
+        string password_hash
+        string typ
+        string api_token
+        datetime erstellt_am
+    }
+
+    NUTZER {
+        int nutzer_id PK
+        string name
+        string email
+        string password_hash
+        string api_token
+        datetime erstellt_am
+    }
+
+    FAHRZEUGTYP {
+        int fahrzeugtyp_id PK
+        string bezeichnung
+        decimal grundpreis
+        decimal minutenpreis
+        boolean ist_aktiv
+    }
+
+    FAHRZEUG {
+        int fahrzeug_id PK
+        int anbieter_id FK
+        int fahrzeugtyp_id FK
+        enum status
+        decimal akku_status
+        decimal gps_lat
+        decimal gps_long
+        string qr_code
+        datetime erstellt_am
+    }
+
+    AUSLEIHE {
+        int ausleihe_id PK
+        int nutzer_id FK
+        int fahrzeug_id FK
+        datetime startzeit
+        datetime endzeit
+        decimal kilometer
+        decimal kosten
+        decimal grundpreis
+        decimal minutenpreis
+    }
+
+    ZAHLUNGSMITTEL {
+        int zahlungsmittel_id PK
+        int nutzer_id FK
+        string typ
+        string details
+        boolean ist_aktiv
+        datetime erstellt_am
+    }
+
+    ZAHLUNG {
+        int zahlung_id PK
+        int ausleihe_id FK
+        int zahlungsmittel_id FK
+        datetime zeitpunkt
+        decimal betrag
+        enum status
+    }
+
+    VERLEIHANBIETER ||--o{ FAHRZEUG : besitzt
+    FAHRZEUGTYP ||--o{ FAHRZEUG : klassifiziert
+    FAHRZEUG ||--o{ AUSLEIHE : wird_genutzt_in
+    NUTZER ||--o{ AUSLEIHE : taetigt
+    NUTZER ||--o{ ZAHLUNGSMITTEL : hinterlegt
+    ZAHLUNGSMITTEL ||--o{ ZAHLUNG : wird_verwendet_fuer
+    AUSLEIHE ||--o{ ZAHLUNG : hat

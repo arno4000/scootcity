@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-6">
+    <h2 class="mb-4">Registrierung Verleihanbieter</h2>
+    <form method="post">
+      <div class="mb-3">
+        <label class="form-label">Firmenname / Person</label>
+        <input type="text" name="name" class="form-control" required>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">E-Mail</label>
+        <input type="email" name="email" class="form-control" required>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Passwort</label>
+        <input type="password" name="password" class="form-control" required>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Passwort bestätigen</label>
+        <input type="password" name="confirm" class="form-control" required>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Typ</label>
+        <select class="form-select" name="typ">
+          <option value="firma">Firma</option>
+          <option value="privat">Privatperson</option>
+        </select>
+      </div>
+      <button type="submit" class="btn btn-success">Registrieren</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

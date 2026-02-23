@@ -1,0 +1,222 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+  <h2 class="mb-0">Hallo {{ user.name }}!</h2>
+  <div>
+    <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-secondary btn-sm">Logout</a>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-4">
+    <div class="card h-100 text-center">
+      <div class="card-body">
+        <div class="text-muted small">Fahrten</div>
+        <div class="display-6">{{ stats.rides }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card h-100 text-center">
+      <div class="card-body">
+        <div class="text-muted small">Gefahrene Kilometer</div>
+        <div class="display-6">{{ stats.kilometers }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card h-100 text-center">
+      <div class="card-body">
+        <div class="text-muted small">Ausgaben (CHF)</div>
+        <div class="display-6">{{ '%.2f'|format(stats.spent) }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-5">
+    <div class="card h-100">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span>Aktive Fahrt</span>
+        {% if active_ride %}
+          <span class="badge bg-success">läuft</span>
+        {% endif %}
+      </div>
+      <div class="card-body">
+        {% if active_ride %}
+          <p class="mb-1"><strong>Start:</strong> {{ active_ride.start_time.strftime('%d.%m.%Y %H:%M') }}</p>
+          <p class="mb-3"><strong>Fahrzeug:</strong> {{ active_ride.vehicle.vehicle_type.name if active_ride.vehicle.vehicle_type else '-' }} ({{ active_ride.vehicle.qr_code }})</p>
+          <form method="post" action="{{ url_for('user.end_ride', ride_id=active_ride.id) }}">
+            <div class="mb-3">
+              <label class="form-label">Gefahrene Kilometer</label>
+              <input type="number" step="0.1" min="0" name="kilometers" class="form-control" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Zahlungsmittel (optional)</label>
+              {% if payment_methods %}
+                <select name="payment_method_id" class="form-select">
+                  <option value="">Jetzt auswählen...</option>
+                  {% for method in payment_methods %}
+                    <option value="{{ method.id }}">{{ method.method_type }} – {{ method.details }}</option>
+                  {% endfor %}
+                </select>
+              {% else %}
+                <div class="alert alert-info mb-0">
+                  Kein Zahlungsmittel hinterlegt.
+                  <a class="alert-link" href="{{ url_for('user.payment_methods') }}">Jetzt hinzufügen</a>
+                  oder nach der Fahrt bezahlen.
+                </div>
+              {% endif %}
+            </div>
+            <button class="btn btn-success">Fahrt beenden</button>
+          </form>
+        {% else %}
+          <p class="mb-3">Keine aktive Fahrt. Wählen Sie ein verfügbares Fahrzeug um zu starten.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-7">
+    <div class="card h-100">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span>Verfügbare Fahrzeuge</span>
+        <span class="text-muted small">{{ available_vehicles|length }} angezeigt</span>
+      </div>
+      <div class="card-body">
+        {% if available_vehicles %}
+          <div class="table-responsive">
+            <table class="table table-sm table-striped align-middle">
+              <thead>
+                <tr>
+                  <th>Typ</th>
+                  <th>Provider</th>
+                  <th>Batterie</th>
+                  <th>QR / Link</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for vehicle in available_vehicles %}
+                  <tr>
+                    <td>{{ vehicle.vehicle_type.name if vehicle.vehicle_type else '-' }}</td>
+                    <td>{{ vehicle.provider.name if vehicle.provider else '-' }}</td>
+                    <td>
+                      <div class="progress" style="height: 6px;">
+                        <div class="progress-bar" role="progressbar" style="width: {{ vehicle.battery_level }}%;" aria-valuenow="{{ vehicle.battery_level }}" aria-valuemin="0" aria-valuemax="100"></div>
+                      </div>
+                      <small>{{ '%.0f'|format(vehicle.battery_level) }}%</small>
+                    </td>
+                    <td class="text-center">
+                      <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#qrRow{{ vehicle.id }}">
+                        QR anzeigen
+                      </button>
+                    </td>
+                    <td class="text-end">
+                      <form method="post" action="{{ url_for('user.start_ride') }}">
+                        <input type="hidden" name="vehicle_id" value="{{ vehicle.id }}">
+                        <button class="btn btn-primary btn-sm" {% if active_ride %}disabled{% endif %}>Start</button>
+                      </form>
+                    </td>
+                  </tr>
+                  <tr class="collapse" id="qrRow{{ vehicle.id }}">
+                    <td colspan="5">
+                      <div class="d-flex align-items-center gap-3">
+                        <img src="data:image/png;base64,{{ vehicle_qr_codes[vehicle.id] }}" alt="QR Code" width="120" height="120" class="border rounded">
+                        <div>
+                          <p class="mb-1">Scannen oder Link öffnen, um den Scooter freizuschalten.</p>
+                          <a href="{{ url_for('user.unlock_vehicle', vehicle_id=vehicle.id, code=vehicle.qr_code) }}" target="_blank">
+                            {{ url_for('user.unlock_vehicle', vehicle_id=vehicle.id, code=vehicle.qr_code, _external=True) }}
+                          </a>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <p class="mb-0">Keine Fahrzeuge verfügbar.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4 mt-1">
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span>Zahlungsmittel</span>
+        <a href="{{ url_for('user.payment_methods') }}" class="btn btn-sm btn-outline-secondary">Verwalten</a>
+      </div>
+      <div class="card-body">
+        {% if payment_methods %}
+          <ul class="list-group list-group-flush mb-3">
+            {% for method in payment_methods %}
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                  <div class="fw-semibold">{{ method.method_type }}</div>
+                  <small class="text-muted">{{ method.details }}</small>
+                </div>
+                <form method="post" action="{{ url_for('user.delete_payment_method', method_id=method.id) }}" onsubmit="return confirm('Zahlungsmittel wirklich löschen?');">
+                  <input type="hidden" name="next" value="dashboard">
+                  <button class="btn btn-outline-danger btn-sm">
+                    &times;
+                  </button>
+                </form>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="mb-3">Noch kein Zahlungsmittel hinterlegt.</p>
+        {% endif %}
+        <form method="post" action="{{ url_for('user.payment_methods') }}" class="row g-2">
+          <input type="hidden" name="next" value="dashboard">
+          <div class="col-sm-5">
+            <select class="form-select" name="method_type">
+              <option value="Kreditkarte">Kreditkarte</option>
+              <option value="Debitkarte">Debitkarte</option>
+              <option value="Abo">Abo</option>
+            </select>
+          </div>
+          <div class="col-sm-5">
+            <input type="text" class="form-control" name="details" placeholder="z.B. Visa **** 4242" required>
+          </div>
+          <div class="col-sm-2 d-grid">
+            <button class="btn btn-primary">Add</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card h-100">
+      <div class="card-header">Letzte Fahrten</div>
+      <div class="card-body">
+        {% if recent_rides %}
+          <div class="list-group">
+            {% for ride in recent_rides %}
+              <div class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                  <div class="fw-semibold">{{ ride.vehicle.vehicle_type.name if ride.vehicle.vehicle_type else '-' }} ({{ ride.vehicle.qr_code }})</div>
+                  <small class="text-muted">
+                    {{ ride.start_time.strftime('%d.%m.%Y %H:%M') }}
+                    {% if ride.end_time %}- {{ ride.end_time.strftime('%H:%M') }}{% endif %}
+                    · {{ ride.kilometers }} km
+                  </small>
+                </div>
+                <span class="badge bg-light text-dark">{{ ride.cost }} CHF</span>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="mb-3">Noch keine Fahrten.</p>
+        {% endif %}
+        <a href="{{ url_for('user.ride_history') }}" class="btn btn-link px-0 mt-2">Alle Fahrten anzeigen</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

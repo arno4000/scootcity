@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+  <h2 class="mb-0">Zahlungsmittel verwalten</h2>
+  <a href="{{ url_for('user.dashboard') }}" class="btn btn-outline-secondary btn-sm">Zurück zum Dashboard</a>
+</div>
+<div class="row g-4">
+  <div class="col-lg-6">
+    <div class="card h-100">
+      <div class="card-header">Bestehende Zahlungsmittel</div>
+      <div class="card-body">
+        {% if payment_methods %}
+          <div class="list-group">
+            {% for method in payment_methods %}
+              <div class="list-group-item">
+                <div class="d-flex justify-content-between align-items-center">
+                  <div>
+                    <div class="fw-semibold">{{ method.method_type }}</div>
+                    <div class="small text-muted">{{ method.details }} · {{ method.created_at.strftime('%d.%m.%Y') }}</div>
+                  </div>
+                  <form method="post" action="{{ url_for('user.delete_payment_method', method_id=method.id) }}" onsubmit="return confirm('Zahlungsmittel wirklich löschen?');">
+                    <button class="btn btn-outline-danger btn-sm" name="next" value="payment">
+                      Entfernen
+                    </button>
+                  </form>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="mb-0">Noch keine Zahlungsmittel erfasst.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card h-100">
+      <div class="card-header">Neues Zahlungsmittel hinzufügen</div>
+      <div class="card-body">
+        <form method="post" class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">Typ</label>
+            <select class="form-select" name="method_type">
+              <option value="Kreditkarte">Kreditkarte</option>
+              <option value="Debitkarte">Debitkarte</option>
+              <option value="Abo">Abo</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Details</label>
+            <input type="text" class="form-control" name="details" placeholder="z.B. Visa ****1234" required>
+          </div>
+          <div class="col-12 d-grid">
+            <button class="btn btn-primary">Speichern</button>
+          </div>
+        </form>
+        <p class="text-muted small mt-3 mb-0">Entfernte Zahlungsmittel werden nur für Sie ausgeblendet, bleiben aber für Abrechnungsbelege im System erhalten.</p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

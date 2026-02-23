@@ -1,0 +1,32 @@
+services:
+  mariadb:
+    image: lscr.io/linuxserver/mariadb:latest
+    container_name: mariadb-dbwe
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC
+      - MYSQL_ROOT_PASSWORD=sml12345
+      - MYSQL_DATABASE=scooter_plattform
+      # - MYSQL_USER=scooter
+      # - MYSQL_PASSWORD=changeme
+    volumes:
+      - ./db/data:/config
+    ports:
+      - 3306:3306
+    restart: unless-stopped
+
+  scootcity:
+    image: kubierend/scootcity:latest
+    container_name: scootcity-app
+    depends_on:
+      - mariadb
+    environment:
+      - DATABASE_URL=mysql+pymysql://root:sml12345@mariadb/scooter_plattform
+      - SECRET_KEY=super-secret-change-me
+      - BASE_URL=http://192.168.1.123:8000
+      - BASE_RATE=1.5
+      - PER_MINUTE_RATE=0.35
+    ports:
+      - 8000:8000
+    restart: unless-stopped

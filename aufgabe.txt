@@ -1,0 +1,191 @@
+ipso! Bildungsmarken
+Aufgabenstellung Praxisarbeit – DBWE.TA1A.PA
+HFINFA & HFINFP - 3. Studienjahr
+1 Fächerinhalt
+• Datenbanken und Webentwicklung (DBWE)
+Im vorliegenden Fach haben Sie sich insbesondere an den folgenden Lern- und Kompetenzen orientiert:
+DBWE; kann eine Webanwendung mit Datenbank programmieren
+o kann die Technologien relationales Datenbanksystem, Python und Flask zielgerichtet einsetzen
+o kann die Architektur einer Webentwicklung planen und dokumentieren
+Im Rahmen dieser qualifikationsrelevanten Praxisarbeit soll das Gelernte in einem praktischen Kontext zur
+Anwendung kommen.
+2 Arbeitsauftrag
+Ihre Praxisarbeit soll folgende Ergebnisse liefern:
+• eine lauffähige Anwendung mit Flask und einer Datenbank
+• eine kurze Dokumentation zur Bedienung der Anwendung
+• eine nachvollziehbare Beschreibung der Architektur der Software, insbesondere dann, wenn von den
+Technologien und Vorgehensweisen aus dem Unterricht abgewichen wird.
+• eine Dokumentation Architektur und der Lösungsansätze sowie die Reflexion, weshalb dies so
+ausgewählt wurde, was dies für Vorteile und Nachteile bringt. Dies betrifft Fragen der Wartbarkeit,
+Skalierbarkeit und Verfügbarkeit.
+2.1 Anwendung
+Wichtigstes Lieferobjekt ist eine lauffähige Webanwendung. Sie stellen sie zum Abgabetermin über das
+Internet bereit und dort wird sie vom Examinator auf die Erfüllung der Anforderungen getestet.
+Für den Zugriff über den Webbrowser und per API mit http oder https werden ein URL mit IP-Adresse
+(oder DNS-Name), der Port für den Zugriff sowie die benötigten Login-Informationen dokumentiert. Die
+Applikation muss nach Abgabetermin für mindestens 4 Wochen während der Korrekturzeit zur Verfügung
+stehen.
+Aufgabenstellung Praxisarbeit – DBWE.TA1A.PA
+13.12.2025 2/5
+2.1.1 Art und Funktionsumfang der Webanwendung
+Ihre Webapplikation stellt dem Benutzer eine Funktionalität zur Verfügung, die Sie innerhalb eines
+vorgegebenen Rahmens selbst bestimmen können.
+Natürlich können Sie auch die Normaufgabe (Siehe Anhang A) verwenden
+Sie muss dabei folgende Anforderungen erfüllen:
+• es gibt eine interaktive Weboberfläche, mit der der Benutzer Eingaben machen,
+Verarbeitungen oder Aktionen auslösen und Ergebnisse ansehen kann.
+• der Zugriff auf die Webanwendung muss über Benutzerkonten mit Passwörtern geregelt
+werden. Neue Benutzer müssen sich mit einem eindeutigen Benutzernamen und E-Mail-
+Account registrieren.
+• die Applikation muss neben den Benutzeraccounts Daten speichern, die für die Applikation
+spezifisch sind (Beispiel: Kochrezepte, Kommentare, Mitarbeiter, Projekte, usw…). Sie werden
+in einer relationalen Datenbank gespeichert.
+• es gibt eine eigene Geschäftslogik. Diese kann Berechnungen, Aktionen, Überprüfungen von
+Eingaben oder auch nur die Erfassung und Anzeige von Daten umfassen.
+• auf ausgewählte Daten der Webanwendung muss neben der interaktiven Weboberfläche auch
+ein (mindestens) lesender Zugriff über ein RESTful Web-API mittels eines gängigen Clients
+(http, curl, Postman, etc. – nicht im Browser) möglich sein. Das gilt für einen spezifischen
+Inhalt der jeweiligen Webapplikation (also nicht nur die Daten der User). Die Authentifizierung
+des Clients am API muss ebenfalls ohne Browser möglich sein.
+2.1.2 Technologien
+Einzusetzen sind folgende Technologien:
+• Datenbanksystem: MSSQL oder MySQL, MariaDB oder PostgreSQL
+• Programmiersprache: Python Version ab 3.9
+• Web-Framework: Flask, diverse Flask-Erweiterungen aus dem Unterricht
+• Webserver: Gunicorn (standalone) oder in Kombination mit Nginx oder Apache
+Der zusätzliche Einsatz weiterer Technologien ist möglich, er muss aber begründet und beschrieben
+werden.
+2.1.3 Source Code
+Der Source Code der Anwendung wird vollständig als Repository auf GitHub, Bitbucket oder GitLab
+bereitgestellt. Er wird vom Examinator stichprobenartig überprüft. Die URL und allenfalls User /
+Passwort für einen lesenden Zugriff sind zu dokumentieren.
+Der Source Code muss verständlich kommentiert sein, insbesondere dann, wenn der Code aus dem
+Unterricht verändert oder erweitert wird oder deutlich von den Code-Beispielen aus dem Unterricht
+abgewichen wird. Source Code, der aus fremden Quellen stammt, muss mit Quellenangaben im
+Kommentar gekennzeichnet werden, so wie ein Zitat.
+2.1.4 Tests
+Tests, mit denen die Erfüllung der wichtigsten funktionalen und Qualitäts-Anforderungen überprüft
+werden können, müssen dokumentiert werden. Dies können Beschreibungen für manuell ausgeführte
+Tests sein oder automatisierte Tests. Für die Tests muss ein kurzes Testprotokoll erstellt werden, das
+dokumentiert, welche Anforderungen bisher erfüllt wurden und welche nicht. Wichtig ist nicht, dass
+alle Tests erfolgreich sind. Vielmehr soll gezeigt werden, dass die Tests definiert und durchgeführt
+wurden.
+Aufgabenstellung Praxisarbeit – DBWE.TA1A.PA
+13.12.2025 3/5
+3 Aufbau der Praxisarbeit
+Der schriftliche Teil enthält folgende Abschnitte:
+3.1 Management Summary
+• Zusammenfassung die das Vorhaben, seine Ziele und die erreichten Ergebnisse beschreibt. Die
+wichtigsten Punkte der Infrastruktur müssen ersichtlich sein: Was für eine Technologie / Plattform /
+Cloud wurde gewählt, was ist der wichtigste Mehrwert / das grösste Risiko / was sollte hier das
+Management unbedingt noch dazu wissen.
+3.2 Anwendung
+• Auflistung der wichtigsten Anforderungen
+• Kurzbeschreibung der Funktionalität und Bedienung der Webanwendung im Browser ('User Manual')
+• Kurze Dokumentation der API-Schnittstelle in der Form <Methode> <Endpunkt-URL> für jeden
+Endpunkt, so dass sie mit einem gängigen API-Client (Ohne Browser) getestet werden kann. z.B. ‘http
+GET https://host/api/inhalt’. Ist eine Authentisierung erforderlich, muss sie über das API möglich sein
+und muss beschrieben werden.
+• Beschreibung der Architektur mit Diagrammen, im Einzelnen:
+o Das Datenmodell der Applikation als ERD oder Klassendiagramm, mit kurzer Beschreibung
+o Die wichtigsten Abläufe in der Webanwendung als Aktivitäts-, Zustands- oder Sequenz-
+Diagramm mit kurzer Beschreibung
+o Allfällig verwendete zusätzliche Technologien, Strukturen und Abläufe, soweit sie nicht im
+Unterricht behandelt wurden, sind mit Quellenverweis zu benennen und zu beschreiben.
+o Bereitstellung der Komponenten (z.B. Applikation, Webserver, DB-Server, zusätzliche Tools)
+als Diagramm mit Beschreibung.
+• Ein Testprotokoll mit 6-12 ausgewählten wichtigen Testfällen. Pro Test muss eine Kurzbeschreibung,
+das erwartete Ergebnis und das tatsächliche Ergebnis dokumentiert werden. Hier können auch Tests
+stehen, die zum Zeitpunkt der Abgabe nicht erfolgreich waren.
+Der Umfang des Dokuments, ohne Management Summary und Anhang, soll mindestens 8 und darf maximal
+30 Seiten betragen. Für die korrekte Struktur des Dokuments orientieren Sie sich am Leitfaden für schriftliche
+Arbeiten in der ipso Bildung.
+4 Einreichung Ihrer Praxisarbeit
+Laden Sie termingerecht Ihre Praxisarbeit als «Lösungsdokument» (als PDF) und den dazugehörigen,
+kommentierten Source Code in einem «ZIP-File» als «Anhang» auf die Complesis-Plattform hoch.
+Zur Einreichung gehört ebenso das Bereitstellen der entsprechenden Dateien auf GitHub, Bitbucket oder
+GitLab.
+Aufgabenstellung Praxisarbeit – DBWE.TA1A.PA
+13.12.2025 4/5
+5 Erwartungen und Bewertungskriterien
+Ihre Praxisarbeit wird anhand der folgenden vier Standard-Gütekriterien beurteilt:
+Kriterium Erwartung Skala
+Formale Aspekte Beurteilung über die gesamte Arbeit:
+Niveaugerechte Sprache, korrekte
+Verwendung von Fachbegriffen, saubere
+Quellenangaben, verständlicher und
+professioneller Ausdruck (inkl.
+Rechtschreibung)
+Der Erfüllungsgrad wird pro
+Kriterium mit 0 bis 3 Punkten
+beurteilt.
+Güte der thematischen
+Auseinandersetzung
+Sind alle Bestandteile der
+Aufgabenstellung erfüllt? Gibt es einen
+sinnvollen Einsatz der im Kurs gelehrten
+Technologien und Vorgehensweisen?
+Zu welchem Grad wurde eine selbst
+entworfene Funktionalität der Applikation
+implementiert?
+Der Erfüllungsgrad wird pro
+Kriterium mit 0 bis 3 Punkten
+beurteilt.
+Nachvollziehbare
+Vorgehensweise
+Beurteilung über die gesamte Arbeit:
+logisch nachvollziehbare Argumentation
+und Methodik.
+Management Summary: Klarheit und
+Prägnanz, gelingt der Fokus auf das
+Wesentliche, Tauglichkeit für die
+Geschäftsleitung.
+Der Erfüllungsgrad wird pro
+Kriterium mit 0 bis 3 Punkten
+beurteilt.
+Funktionierende
+Applikation
+Funktionierende Applikation und
+erfolgreiche Bereitstellung im Internet: A)
+Im Webbrowser und B) über ein Web-
+API.
+Der Erfüllungsgrad wird pro
+Kriterium mit 0 bis 3 Punkten
+beurteilt.
+Für die Beurteilung des Erfüllungsgrades gilt:
+3 = Erwartungen vollumfänglich erfüllt
+2 = Erwartungen mehrheitlich erfüllt
+1 = Erwartungen mehrheitliche nicht erfüllt
+0 = Erwartungen klar nicht erfüllt/verfehlt
+Die Arbeiten werden durch Examinatoren beurteilt und durch die Prüfungsleitung geprüft. Die Bewertung ist
+abschliessend. Die erreichte Punktzahl wird mittels folgender Formel in die abschliessende Note umgerechnet:
+(Erreichte Punkte * 5)
+----------------------------- + 1 = Note
+12
+Aufgabenstellung Praxisarbeit – DBWE.TA1A.PA
+13.12.2025 5/5
+Anhang A: Normaufgabe
+1. Szenario
+Eine Stadtverwaltung plant, die Mobilität in ihrem Verkehrsnetz zu verbessern und beauftragt ein ITUnternehmen
+mit der Entwicklung einer Online-Plattform zum Verleih von E-Scootern. Privatpersonen und
+lokale Verleihfirmen können E-Scooter anmelden, Nutzerinnen und Nutzer können sie über eine App ausleihen,
+fahren und bezahlen.
+2. Ziel der Aufgabe
+Erstellen Sie eine objektorientierte Analyse und ein Design nach rotem Faden, dass die folgenden
+Anforderungen abbildet:
+3. Funktionale Anforderungen
+1. Registrierung und Authentifizierung
+• Verleihanbieter registrieren sich und verwalten ihre Scooter-Flotte.
+• Fahrerinnen und Fahrer legen Profile an, melden sich an und ab.
+2. Scooter-Verwaltung
+• Anbieter können Scooter hinzufügen, bearbeiten (Status, Standort) und entfernen.
+• Jeder Scooter hat eine eindeutige ID, Akku-Status und GPS-Koordinaten.
+3. Ausleihe und Rückgabe
+• Nutzer:innen scannen QR-Codes, um einen Scooter zu ent- bzw. verriegeln.
+• Start- und Endzeitpunkt sowie gefahrene Kilometern werden erfasst.
+4. Abrechnung
+• Abrechnung erfolgt minutengenau zu einem Basispreis + Fahrpreis pro Minute.
+• Nutzer:innen hinterlegen Zahlungsmittel, System verarbeitet Transaktionen.
+5. Nicht-funktionale Anforderungen
+• Erweiterbarkeit: Einbindung weiterer Fahrzeugtypen (E-Bikes) soll leicht möglich sein.
+• Performance: Die Plattform muss bis zu 500 gleichzeitige Ausleihen unterstützen.
