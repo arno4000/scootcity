@@ -28,6 +28,9 @@ def register():
         if User.query.filter_by(email=email).first():
             flash("E-Mail ist bereits registriert.", "danger")
             return render_template("auth/register.html")
+        if User.query.filter_by(name=name).first():
+            flash("Benutzername ist bereits vergeben.", "danger")
+            return render_template("auth/register.html")
 
         user = User(name=name, email=email)
         user.set_password(password)
@@ -59,6 +62,9 @@ def provider_register():
 
         if Provider.query.filter_by(email=email).first():
             flash("E-Mail ist bereits vergeben.", "danger")
+            return render_template("auth/provider_register.html")
+        if Provider.query.filter_by(name=name).first():
+            flash("Anbietername ist bereits vergeben.", "danger")
             return render_template("auth/provider_register.html")
 
         provider = Provider(name=name, email=email, typ=provider_type)

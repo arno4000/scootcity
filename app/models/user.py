@@ -13,7 +13,7 @@ class User(db.Model):
 
     # Basis-Stammdaten
     id = db.Column("nutzer_id", db.Integer, primary_key=True)
-    name = db.Column(db.String(120), nullable=False)
+    name = db.Column(db.String(120), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     # Passwort wird gehasht gespeichert (nie im Klartext)
     password_hash = db.Column(db.String(255), nullable=False)

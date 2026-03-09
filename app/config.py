@@ -6,7 +6,7 @@ class Config:
     SECRET_KEY = os.environ.get("SECRET_KEY", "super-secret-change-me")
     SQLALCHEMY_DATABASE_URI = os.environ.get(
         "DATABASE_URL",
-        "mysql+pymysql://root:sml12345@localhost/scooter_platform",
+        "mysql+pymysql://root:sml12345@localhost/scooter_plattform",
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     BASE_URL = os.environ.get("BASE_URL", "http://0.0.0.0:5000")

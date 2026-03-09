@@ -1,6 +1,6 @@
 # 4 API-Dokumentation
 
-Die REST-API stellt alle Kernprozesse der Plattform für Maschinenzugriff bereit. Standard-Basis-URL ist `https://<host>/api`. Clients senden JSON und erwarten JSON als Antwort. Fehlermeldungen enthalten mindestens ein Feld `error` sowie einen passenden HTTP-Status.
+Die REST-API stellt alle Kernprozesse der Plattform für Maschinenzugriff bereit. Standard-Basis-URL ist `http(s)://<host>/api`. Clients senden JSON und erwarten JSON als Antwort. Fehlermeldungen enthalten mindestens ein Feld `error` sowie einen passenden HTTP-Status.
 
 ## 4.1 Authentisierung
 
@@ -17,16 +17,16 @@ Die REST-API stellt alle Kernprozesse der Plattform für Maschinenzugriff bereit
 | Methode | Endpoint | Auth | Beschreibung | Request-Body | Response |
 | --- | --- | --- | --- | --- | --- |
 | POST | `/api/users` | keine | Erstellt einen Fahrer:innen-Account inkl. Initial-Token. | `{ "name": "...", "email": "...", "password": "..." }` | `201 Created`, liefert `user`-Objekt + `token`. |
-| POST | `/api/providers` | keine | Erstellt einen Verleihanbieter mit optionalem Feld `typ`. | `{ "name": "...", "email": "...", "password": "...", "typ": "firma\|privat" }` | `201 Created`, liefert `provider`-Objekt + `token`. |
+| POST | `/api/providers` | keine | Erstellt einen Verleihanbieter mit optionalem Feld `typ`. `name` und `email` müssen eindeutig sein. | `{ "name": "...", "email": "...", "password": "...", "typ": "firma\|privat" }` | `201 Created`, liefert `provider`-Objekt + `token`; `409` bei Konflikten. |
 
 ## 4.3 Fahrzeuge
 
 | Methode | Endpoint | Auth | Beschreibung | Request-Parameter | Response |
 | --- | --- | --- | --- | --- | --- |
-| GET | `/api/vehicles` | Bearer (User/Provider) | Liefert Fahrzeuge. Provider sehen nur eigene, User sehen standardmässig `status=available`. Query `?status=<status>` filtert zusätzlich. | Query `status` optional. | Liste von Vehicle-Objekten. |
-| POST | `/api/vehicles` | Bearer (Provider) | Legt Fahrzeug an. QR-Code ist Pflicht; Koordinaten optional (Default aus Config). | `{ "vehicle_type": "E-Scooter", "status": "available", "battery_level": 95, "gps_lat": 47.37, "gps_long": 8.54, "qr_code": "XYZ123" }` | `201 Created`, Vehicle-Objekt. |
+| GET | `/api/vehicles` | Bearer (User/Provider) | Liefert Fahrzeuge. Provider sehen nur eigene, User sehen standardmässig `status=verfuegbar`. Query `?status=<status>` filtert zusätzlich. | Query `status` optional. | Liste von Vehicle-Objekten. |
+| POST | `/api/vehicles` | Bearer (Provider) | Legt Fahrzeug an. QR-Code ist Pflicht; Koordinaten optional (Default aus Config). | `{ "vehicle_type": "E-Scooter", "status": "verfuegbar", "battery_level": 95, "gps_lat": 47.37, "gps_long": 8.54, "qr_code": "XYZ123" }` | `201 Created`, Vehicle-Objekt. |
 | GET | `/api/vehicles/<id>` | Bearer (User/Provider) | Detail eines Fahrzeugs. Provider dürfen nur eigene sehen; User nur, wenn Fahrzeug verfügbar. | Pfadparameter `<id>`. | Vehicle-Objekt. |
-| PATCH/PUT | `/api/vehicles/<id>` | Bearer (Provider) | Aktualisiert Status, Typ, Akku oder Koordinaten. | Teilobjekt, z.B. `{ "status": "maintenance" }`. | Aktualisiertes Vehicle. |
+| PATCH/PUT | `/api/vehicles/<id>` | Bearer (Provider) | Aktualisiert Status, Typ, Akku oder Koordinaten. | Teilobjekt, z.B. `{ "status": "wartung" }`. | Aktualisiertes Vehicle. |
 | DELETE | `/api/vehicles/<id>` | Bearer (Provider) | Entfernt ein Fahrzeug dauerhaft. | – | `{ "status": "deleted" }`. |
 | GET | `/api/vehicles/<id>/qr` | Bearer (User/Provider) | Liefert QR-Code-PNG für Unlock-Link. User erhalten nur Codes für verfügbare Fahrzeuge. | – | Binary `image/png`. |
 
@@ -36,7 +36,9 @@ Die REST-API stellt alle Kernprozesse der Plattform für Maschinenzugriff bereit
 | --- | --- | --- | --- | --- | --- |
 | GET | `/api/rides` | Bearer (User) | Listet Fahrten des eingeloggten Fahrers absteigend nach Startzeit. | – | `{ "data": [ ... ] }`. |
 | POST | `/api/rides/start` | Bearer (User) | Startet eine Fahrt. Es darf nur eine aktive Fahrt pro User existieren. | `{ "vehicle_id": 42 }` | `201 Created`, Ride-Objekt. |
-| POST | `/api/rides/<id>/end` | Bearer (User) | Beendet eine Fahrt, berechnet Kosten und setzt Fahrzeug auf `available`. Optional Payment-Methode übergeben. | `{ "kilometers": 3.5, "payment_method_id": 7 }` | Ride-Objekt mit `cost`, `end_time`. |
+| POST | `/api/rides/<id>/end` | Bearer (User) | Beendet eine Fahrt, berechnet Kosten und setzt Fahrzeug auf `verfuegbar`. Optional Payment-Methode übergeben. | `{ "kilometers": 3.5, "payment_method_id": 7 }` | Ride-Objekt mit `cost`, `end_time`. |
+
+Hinweis: In MariaDB/MySQL werden Start und Ende intern über Stored Procedures (`sp_fahrt_starten`, `sp_fahrt_beenden`) ausgeführt; in SQLite-Testumgebungen greift ein ORM-Fallback mit gleichem Verhalten.
 
 ## 4.5 Zahlungsmittel & Payments
 
@@ -46,7 +48,7 @@ Die REST-API stellt alle Kernprozesse der Plattform für Maschinenzugriff bereit
 | POST | `/api/payment-methods` | Bearer (User) | Legt ein Zahlungsmittel an. `details` ist Pflicht. | `{ "method_type": "Kreditkarte", "details": "Visa **** 4242" }` | `201 Created`, Objekt wie oben. |
 | DELETE | `/api/payment-methods/<id>` | Bearer (User) | Markiert Zahlungsmittel als inaktiv (Soft Delete). | – | `{ "status": "archived" }`. |
 
-Sobald eine Fahrt mit `payment_method_id` beendet wird, legt das System automatisch einen Payment-Eintrag mit Status `settled` an. Dieser ist Bestandteil der Ride-Daten (`ride["payments"]`).
+Sobald eine Fahrt mit `payment_method_id` beendet wird, legt das System automatisch einen Payment-Eintrag mit Status `bezahlt` an.
 
 ## 4.6 Fahrzeugtypen
 

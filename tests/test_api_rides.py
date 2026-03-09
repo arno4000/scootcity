@@ -1,7 +1,10 @@
+from datetime import timedelta
+
 import pytest
 
 from app.extensions import db
-from app.models import PaymentMethod, Ride, Vehicle
+from app.models import Payment, PaymentMethod, Ride, Vehicle
+from app.utils.time import utcnow
 from tests.helpers import auth_header
 
 
@@ -58,3 +61,49 @@ def test_start_ride_rejects_unavailable_vehicle(app, client, user, provider, veh
     )
     assert second_attempt.status_code == 400
     assert "nicht verfügbar" in second_attempt.get_json()["error"]
+
+
+def test_end_ride_without_payment_method_still_works(app, client, user, provider, vehicle):
+    headers = auth_header(user["token"])
+    start_resp = client.post(
+        "/api/rides/start", headers=headers, json={"vehicle_id": vehicle}
+    )
+    ride_id = start_resp.get_json()["id"]
+
+    end_resp = client.post(
+        f"/api/rides/{ride_id}/end",
+        headers=headers,
+        json={"kilometers": 1.2},
+    )
+    assert end_resp.status_code == 200
+    finished = end_resp.get_json()
+    assert finished["end_time"] is not None
+    assert finished["cost"] == pytest.approx(2.22)
+
+    with app.app_context():
+        payments = Payment.query.filter_by(ride_id=ride_id).count()
+        assert payments == 0
+
+
+def test_end_ride_uses_full_minutes_flooring_in_sqlite_fallback(
+    app, client, user, provider, vehicle
+):
+    headers = auth_header(user["token"])
+    start_resp = client.post(
+        "/api/rides/start", headers=headers, json={"vehicle_id": vehicle}
+    )
+    ride_id = start_resp.get_json()["id"]
+
+    with app.app_context():
+        ride = db.session.get(Ride, ride_id)
+        ride.start_time = utcnow() - timedelta(seconds=61)
+        db.session.commit()
+
+    end_resp = client.post(
+        f"/api/rides/{ride_id}/end",
+        headers=headers,
+        json={"kilometers": 0},
+    )
+    assert end_resp.status_code == 200
+    finished = end_resp.get_json()
+    assert finished["cost"] == pytest.approx(2.22)

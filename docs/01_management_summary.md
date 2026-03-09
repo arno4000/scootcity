@@ -6,8 +6,8 @@ ScootCity digitalisiert den in der Aufgabenstellung beschriebenen E-Scooter-Verl
 
 - **Funktionsumfang**: Registrierung und Login für Fahrer:innen sowie Anbieter, QR-gestützte Fahrten, automatische Kosten- und Akku-Berechnung und ein Payment-Flow mit gepflegten Zahlungsmitteln erfüllen sämtliche Muss-Anforderungen.
 - **API & Automatisierung**: Eine tokenbasierte REST-API (Swagger-Doku unter `/api/docs`) deckt Fahrzeugmanagement, Fahrten und Payments ab und ermöglicht Integrationen mit Drittsystemen wie Anbieter-Tools oder mobilen Apps.
-- **Transparente Betriebsdaten**: Views und Stored Procedures im Schema (`db/schema.sql`) erzeugen konsistente Statistiken (z.B. verfügbare Fahrzeuge, Ride-Historie pro Nutzer) und sichern Kernabläufe direkt auf SQL-Ebene ab.
-- **Nachweis Tests**: Die dokumentierten manuellen Tests (Registrierung, Fahrtenfluss, API-Zugriff) zeigen, dass die zentralen Use Cases durchgespielt und erfolgreich abgeschlossen wurden.
+- **Transparente Betriebsdaten**: Stored Procedures im Schema (`db/schema.sql`) sichern Kernabläufe wie Ride-Start/-Ende direkt auf SQL-Ebene ab.
+- **Nachweis Tests**: Die automatisierten Pytest-Fälle decken zentrale Use Cases (Registrierung, Fahrtenfluss, API-Zugriff) reproduzierbar ab.
 
 ## Infrastruktur & Bereitstellung
 

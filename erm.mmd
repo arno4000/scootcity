@@ -3,26 +3,26 @@ erDiagram
 
     VERLEIHANBIETER {
         int anbieter_id PK
-        string name
-        string email
+        string name UK
+        string email UK
         string password_hash
         string typ
-        string api_token
+        string api_token UK
         datetime erstellt_am
     }
 
     NUTZER {
         int nutzer_id PK
-        string name
-        string email
+        string name UK
+        string email UK
         string password_hash
-        string api_token
+        string api_token UK
         datetime erstellt_am
     }
 
     FAHRZEUGTYP {
         int fahrzeugtyp_id PK
-        string bezeichnung
+        string bezeichnung UK
         decimal grundpreis
         decimal minutenpreis
         boolean ist_aktiv
@@ -36,7 +36,7 @@ erDiagram
         decimal akku_status
         decimal gps_lat
         decimal gps_long
-        string qr_code
+        string qr_code UK
         datetime erstellt_am
     }
 

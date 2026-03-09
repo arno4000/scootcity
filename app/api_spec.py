@@ -9,7 +9,8 @@ SPEC = {
         "description": "REST API für Fahrzeuge, Fahrten und Authentisierung der ScootCity Plattform.",
     },
     "servers": [
-        {"url": "http://localhost:5000", "description": "Lokale Entwicklung"}
+        {"url": "http://localhost:8000", "description": "Docker Compose Standard"},
+        {"url": "http://localhost:5000", "description": "Flask Dev Server"},
     ],
     "tags": [
         {"name": "Accounts", "description": "User- und Provider-Verwaltung"},
@@ -114,7 +115,7 @@ SPEC = {
                 },
                 "responses": {
                     "201": {"description": "Provider erstellt + Token zurückgegeben"},
-                    "409": {"description": "E-Mail existiert bereits"}
+                    "409": {"description": "Name oder E-Mail existiert bereits"}
                 }
             }
         },

@@ -34,3 +34,18 @@ def test_create_user_missing_field_returns_400(client):
     response = client.post("/api/users", json={"name": "No Mail"})
     assert response.status_code == 400
     assert "Pflichtfelder" in response.get_json()["error"]
+
+
+def test_create_user_duplicate_name_returns_409(client):
+    first = client.post(
+        "/api/users",
+        json={"name": "same-name", "email": "first@example.com", "password": "pw12345"},
+    )
+    assert first.status_code == 201
+
+    duplicate_name = client.post(
+        "/api/users",
+        json={"name": "same-name", "email": "second@example.com", "password": "pw12345"},
+    )
+    assert duplicate_name.status_code == 409
+    assert duplicate_name.get_json()["error"] == "Benutzername bereits vergeben."

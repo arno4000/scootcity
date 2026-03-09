@@ -23,7 +23,7 @@ DROP TABLE IF EXISTS nutzer;
 -- ---------------------------------------------------------------------------
 CREATE TABLE nutzer (
     nutzer_id      INT AUTO_INCREMENT PRIMARY KEY,
-    name           VARCHAR(120) NOT NULL,
+    name           VARCHAR(120) NOT NULL UNIQUE,
     email          VARCHAR(120) NOT NULL UNIQUE,
     password_hash  VARCHAR(255) NOT NULL,
     api_token      VARCHAR(64) UNIQUE,
@@ -35,7 +35,7 @@ CREATE TABLE nutzer (
 -- ---------------------------------------------------------------------------
 CREATE TABLE verleihanbieter (
     anbieter_id    INT AUTO_INCREMENT PRIMARY KEY,
-    name           VARCHAR(150) NOT NULL,
+    name           VARCHAR(150) NOT NULL UNIQUE,
     email          VARCHAR(120) NOT NULL UNIQUE,
     password_hash  VARCHAR(255) NOT NULL,
     typ            VARCHAR(50) NOT NULL DEFAULT 'firma',
@@ -229,8 +229,10 @@ BEGIN
     SET status = 'verfuegbar'
     WHERE fahrzeug_id = v_fahrzeug_id;
 
-    INSERT INTO zahlung (ausleihe_id, zahlungsmittel_id, betrag, status)
-    VALUES (p_ausleihe_id, p_zahlungsmittel_id, v_kosten, 'bezahlt');
+    IF p_zahlungsmittel_id IS NOT NULL THEN
+        INSERT INTO zahlung (ausleihe_id, zahlungsmittel_id, betrag, status)
+        VALUES (p_ausleihe_id, p_zahlungsmittel_id, v_kosten, 'bezahlt');
+    END IF;
 END $$
 
 DELIMITER ;

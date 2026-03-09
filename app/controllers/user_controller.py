@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from base64 import b64encode
-import math
 
 from flask import (
     Blueprint,
@@ -15,12 +14,11 @@ from flask import (
 from sqlalchemy import func
 
 from app.extensions import db
-from app.models import Payment, PaymentMethod, Ride, User, Vehicle
+from app.models import PaymentMethod, Ride, User, Vehicle
 from app.utils.auth import get_current_account, login_required
 from app.utils.db import get_or_404
-from app.utils.vehicle import apply_battery_drain
 from app.utils.qr import build_vehicle_qr_payload, generate_qr_png
-from app.utils.time import as_utc, utcnow
+from app.utils.ride_flow import RideFlowError, end_ride_flow, start_ride_flow
 
 
 user_bp = Blueprint("user", __name__)
@@ -109,27 +107,11 @@ def start_ride():
         flash("Sie haben bereits eine laufende Fahrt.", "warning")
         return redirect(url_for("user.dashboard"))
 
-    base_rate = (
-        vehicle.vehicle_type.base_rate
-        if vehicle.vehicle_type and vehicle.vehicle_type.base_rate is not None
-        else current_app.config["BASE_RATE"]
-    )
-    per_minute_rate = (
-        vehicle.vehicle_type.per_minute_rate
-        if vehicle.vehicle_type and vehicle.vehicle_type.per_minute_rate is not None
-        else current_app.config["PER_MINUTE_RATE"]
-    )
-    ride = Ride(
-        user_id=account.id,
-        vehicle_id=vehicle.id,
-        base_rate=base_rate,
-        per_minute_rate=per_minute_rate,
-    )
-    vehicle.status = "in_benutzung"
-    vehicle.gps_lat = current_app.config["DEFAULT_LAT"]
-    vehicle.gps_long = current_app.config["DEFAULT_LONG"]
-    db.session.add(ride)
-    db.session.commit()
+    try:
+        start_ride_flow(account.id, vehicle, current_app.config)
+    except RideFlowError as exc:
+        flash(str(exc), "danger")
+        return redirect(url_for("user.dashboard"))
     flash("Fahrt gestartet.", "success")
     return redirect(url_for("user.dashboard"))
     
@@ -156,27 +138,11 @@ def unlock_vehicle(vehicle_id: int):
         if active_ride:
             flash("Sie haben bereits eine laufende Fahrt.", "warning")
             return redirect(url_for("user.dashboard"))
-        base_rate = (
-            vehicle.vehicle_type.base_rate
-            if vehicle.vehicle_type and vehicle.vehicle_type.base_rate is not None
-            else current_app.config["BASE_RATE"]
-        )
-        per_minute_rate = (
-            vehicle.vehicle_type.per_minute_rate
-            if vehicle.vehicle_type and vehicle.vehicle_type.per_minute_rate is not None
-            else current_app.config["PER_MINUTE_RATE"]
-        )
-        ride = Ride(
-            user_id=account.id,
-            vehicle_id=vehicle.id,
-            base_rate=base_rate,
-            per_minute_rate=per_minute_rate,
-        )
-        vehicle.status = "in_benutzung"
-        vehicle.gps_lat = current_app.config["DEFAULT_LAT"]
-        vehicle.gps_long = current_app.config["DEFAULT_LONG"]
-        db.session.add(ride)
-        db.session.commit()
+        try:
+            start_ride_flow(account.id, vehicle, current_app.config)
+        except RideFlowError as exc:
+            flash(str(exc), "danger")
+            return redirect(url_for("user.dashboard"))
         flash("Fahrt gestartet.", "success")
         return redirect(url_for("user.dashboard"))
 
@@ -202,29 +168,11 @@ def end_ride(ride_id: int):
             ).first()
         )
 
-    now = utcnow()
-    start_time = as_utc(ride.start_time) or now
-    minutes = max(1, math.ceil((now - start_time).total_seconds() / 60))
-    base_rate = ride.base_rate or current_app.config["BASE_RATE"]
-    per_minute_rate = ride.per_minute_rate or current_app.config["PER_MINUTE_RATE"]
-    cost = base_rate + minutes * per_minute_rate
-
-    ride.end_time = now
-    ride.kilometers = kilometers
-    ride.cost = round(cost, 2)
-    ride.vehicle.status = "verfuegbar"
-    apply_battery_drain(ride.vehicle, minutes, kilometers, current_app.config)
-
-    if payment_method:
-        payment = Payment(
-            ride_id=ride.id,
-            payment_method_id=payment_method.id,
-            amount=ride.cost,
-            status="bezahlt",
-        )
-        db.session.add(payment)
-
-    db.session.commit()
+    try:
+        end_ride_flow(ride, kilometers, payment_method, current_app.config)
+    except RideFlowError as exc:
+        flash(str(exc), "danger")
+        return redirect(url_for("user.dashboard"))
     flash("Fahrt beendet und Kosten berechnet.", "success")
     return redirect(url_for("user.dashboard"))
 

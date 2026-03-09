@@ -4,11 +4,12 @@ Webanwendung als Praxisarbeit für DBWE. Die App nutzt Flask (Python 3.11+) mit 
 
 ## Anforderungen & Features
 
-- Registrierung & Login für Fahrer:innen (`nutzer`) und Verleihanbieter (`verleihanbieter`).
+- Registrierung & Login für Fahrer:innen (`nutzer`) und Verleihanbieter (`verleihanbieter`) mit eindeutiger E-Mail; Fahrer:innen zusätzlich mit eindeutigem Benutzernamen.
 - Verwaltung von Fahrzeugflotten inklusive Status, Akku und Position.
 - Fahrer-Dashboard mit Fahrzeugbuchung, Beenden von Fahrten inkl. Kostenberechnung und Payment Flow.
 - Speicherung aller Fachobjekte gemäss ERM (`erm.mmd`).
 - REST-API für Maschinenzugriff (Token-basierte Authentisierung, JSON Responses).
+- Ride-Start und Ride-Ende nutzen auf MariaDB/MySQL aktiv die Stored Procedures `sp_fahrt_starten` und `sp_fahrt_beenden` (mit ORM-Fallback für Nicht-MySQL-Testumgebungen).
 - Zahlungsmittel können von Nutzern entfernt werden, bleiben aber für die Backend-Historie archiviert.
 - Provider-Dashboard zeigt echte QR-Codes (PNG) zur Scooter-Ausweisung; Fahrende können QR-Links über `/unlock/<id>` öffnen und Batteriestände sinken automatisch anhand Fahrzeit/Kilometern.
 
@@ -24,7 +25,7 @@ Webanwendung als Praxisarbeit für DBWE. Die App nutzt Flask (Python 3.11+) mit 
    ```bash
    mysql -u root -p < db/schema.sql
    ```
-   Das Skript legt die komplette Struktur inkl. Views, Stored Procedures sowie Beispieldaten an. Zugriff erfolgt über `mysql+pymysql://root:sml12345@localhost/scooter_platform`.
+   Das Skript legt die komplette Struktur inkl. Views, Stored Procedures sowie Beispieldaten an. Zugriff erfolgt über `mysql+pymysql://root:sml12345@localhost/scooter_plattform`.
 3. **Schema (falls nötig) erneut erzeugen**
    ```bash
    flask --app run.py init-db

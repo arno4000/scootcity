@@ -1,17 +1,14 @@
 from __future__ import annotations
 
-import math
-
 from flask import Blueprint, current_app, jsonify, render_template, request
 
 from app.extensions import db
-from app.models import Payment, PaymentMethod, Provider, Ride, User, Vehicle, VehicleType
+from app.models import PaymentMethod, Provider, Ride, User, Vehicle, VehicleType
 from app.utils.auth import role_required, token_auth_required
 from app.utils.db import get_or_404
 from app.utils.qr import build_vehicle_qr_payload, generate_qr_png
-from app.utils.vehicle import apply_battery_drain
+from app.utils.ride_flow import RideFlowError, end_ride_flow, start_ride_flow
 from app.api_spec import SPEC
-from app.utils.time import as_utc, utcnow
 
 
 api_bp = Blueprint("api", __name__)
@@ -66,6 +63,8 @@ def create_user():
         return jsonify({"error": "Name, Email und Passwort sind Pflichtfelder."}), 400
     if User.query.filter_by(email=email).first():
         return jsonify({"error": "E-Mail bereits vergeben."}), 409
+    if User.query.filter_by(name=name).first():
+        return jsonify({"error": "Benutzername bereits vergeben."}), 409
 
     user = User(name=name, email=email)
     user.set_password(password)
@@ -87,6 +86,8 @@ def create_provider():
         return jsonify({"error": "Name, Email und Passwort sind Pflichtfelder."}), 400
     if Provider.query.filter_by(email=email).first():
         return jsonify({"error": "E-Mail bereits vergeben."}), 409
+    if Provider.query.filter_by(name=name).first():
+        return jsonify({"error": "Anbietername bereits vergeben."}), 409
 
     provider = Provider(name=name, email=email, typ=provider_type)
     provider.set_password(password)
@@ -219,27 +220,10 @@ def start_ride_api(account, role):
     if active_ride:
         return jsonify({"error": "Bereits eine aktive Fahrt vorhanden."}), 409
 
-    base_rate = (
-        vehicle.vehicle_type.base_rate
-        if vehicle.vehicle_type and vehicle.vehicle_type.base_rate is not None
-        else current_app.config["BASE_RATE"]
-    )
-    per_minute_rate = (
-        vehicle.vehicle_type.per_minute_rate
-        if vehicle.vehicle_type and vehicle.vehicle_type.per_minute_rate is not None
-        else current_app.config["PER_MINUTE_RATE"]
-    )
-    ride = Ride(
-        user_id=account.id,
-        vehicle_id=vehicle.id,
-        base_rate=base_rate,
-        per_minute_rate=per_minute_rate,
-    )
-    vehicle.status = "in_benutzung"
-    vehicle.gps_lat = current_app.config["DEFAULT_LAT"]
-    vehicle.gps_long = current_app.config["DEFAULT_LONG"]
-    db.session.add(ride)
-    db.session.commit()
+    try:
+        ride = start_ride_flow(account.id, vehicle, current_app.config)
+    except RideFlowError as exc:
+        return jsonify({"error": str(exc)}), 400
     return jsonify(ride.to_dict()), 201
 
 
@@ -261,29 +245,10 @@ def end_ride_api(account, role, ride_id: int):
             ).first()
         )
 
-    now = utcnow()
-    start_time = as_utc(ride.start_time) or now
-    minutes = max(1, math.ceil((now - start_time).total_seconds() / 60))
-    base_rate = ride.base_rate or current_app.config["BASE_RATE"]
-    per_minute_rate = ride.per_minute_rate or current_app.config["PER_MINUTE_RATE"]
-    cost = base_rate + minutes * per_minute_rate
-
-    ride.end_time = now
-    ride.kilometers = kilometers
-    ride.cost = round(cost, 2)
-    ride.vehicle.status = "verfuegbar"
-    apply_battery_drain(ride.vehicle, minutes, kilometers, current_app.config)
-
-    if payment_method:
-        payment = Payment(
-            ride_id=ride.id,
-            payment_method_id=payment_method.id,
-            amount=ride.cost,
-            status="bezahlt",
-        )
-        db.session.add(payment)
-
-    db.session.commit()
+    try:
+        ride = end_ride_flow(ride, kilometers, payment_method, current_app.config)
+    except RideFlowError as exc:
+        return jsonify({"error": str(exc)}), 400
     return jsonify(ride.to_dict())
 
 

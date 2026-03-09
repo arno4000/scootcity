@@ -7,28 +7,41 @@ erDiagram
 
     VERLEIHANBIETER {
         int anbieter_id PK
-        string name
-        string email
-        string passwort
+        string name UK
+        string email UK
+        string password_hash
         string typ
+        string api_token UK
+        datetime erstellt_am
     }
 
     FAHRZEUG {
         int fahrzeug_id PK
         int anbieter_id FK
-        string fahrzeugtyp
-        string status
-        float akku_status
-        float gps_lat
-        float gps_long
-        string qr_code
+        int fahrzeugtyp_id FK
+        enum status
+        decimal akku_status
+        decimal gps_lat
+        decimal gps_long
+        string qr_code UK
+        datetime erstellt_am
     }
 
     NUTZER {
         int nutzer_id PK
-        string name
-        string email
-        string passwort
+        string name UK
+        string email UK
+        string password_hash
+        string api_token UK
+        datetime erstellt_am
+    }
+
+    FAHRZEUGTYP {
+        int fahrzeugtyp_id PK
+        string bezeichnung UK
+        decimal grundpreis
+        decimal minutenpreis
+        boolean ist_aktiv
     }
 
     AUSLEIHE {
@@ -37,8 +50,10 @@ erDiagram
         int fahrzeug_id FK
         datetime startzeit
         datetime endzeit
-        float kilometer
-        float kosten
+        decimal kilometer
+        decimal kosten
+        decimal grundpreis
+        decimal minutenpreis
     }
 
     ZAHLUNGSMITTEL {
@@ -46,6 +61,8 @@ erDiagram
         int nutzer_id FK
         string typ
         string details
+        boolean ist_aktiv
+        datetime erstellt_am
     }
 
     ZAHLUNG {
@@ -53,16 +70,17 @@ erDiagram
         int ausleihe_id FK
         int zahlungsmittel_id FK
         datetime zeitpunkt
-        float betrag
+        decimal betrag
         string status
     }
 
     VERLEIHANBIETER ||--o{ FAHRZEUG : besitzt
+    FAHRZEUGTYP ||--o{ FAHRZEUG : klassifiziert
     FAHRZEUG ||--o{ AUSLEIHE : wird_genutzt_in
     NUTZER ||--o{ AUSLEIHE : taetigt
     NUTZER ||--o{ ZAHLUNGSMITTEL : hinterlegt
     ZAHLUNGSMITTEL ||--o{ ZAHLUNG : wird_verwendet_fuer
-    AUSLEIHE ||--|| ZAHLUNG : erzeugt
+    AUSLEIHE ||--o{ ZAHLUNG : hat
 ```
 
 ## 5.1 Datenmodell (ERM)
@@ -72,11 +90,11 @@ Das Mermaid-Diagramm entspricht `erm.mmd` und bildet alle Kernobjekte ab:
 - **Verleihanbieter** besitzen beliebig viele Fahrzeuge. Attribute wie `typ` (Firma/Privat) steuern Workflows.
 - **Fahrzeuge** enthalten den Fahrzeugtyp (z.B. E-Scooter), Status, Akku und GPS. Sie verweisen auf einen Anbieter und generieren QR-Codes für das Unlocking.
 - **Nutzer** (Fahrer:innen) besitzen mehrere Ausleihen und Zahlungsmittel.
-- **Ausleihen** verknüpfen Nutzer und Fahrzeuge; sie speichern Start-/Endzeit, Kilometer und Kosten. Jede Ausleihe erzeugt eine zugehörige Zahlung.
+- **Ausleihen** verknüpfen Nutzer und Fahrzeuge; sie speichern Start-/Endzeit, Kilometer, Kosten und historische Tarife.
 - **Zahlungsmittel** gehören zu einem Nutzer und enthalten anonymisierte Details. Mehrere Zahlungen können dasselbe Zahlungsmittel verwenden.
-- **Zahlungen** referenzieren Ausleihe und Zahlungsmittel und dokumentieren Betrag sowie Status (`settled`, `failed`, etc.).
+- **Zahlungen** referenzieren Ausleihe und Zahlungsmittel und dokumentieren Betrag sowie Status (`bezahlt`, `offen`, etc.).
 
-Die Kardinalitäten sichern Geschäftsregeln: Ein Fahrzeug kann gleichzeitig nur in einer Ausleihe sein, Zahlungen haben genau eine Ausleihe, Nutzer dürfen mehrere Zahlungsmittel hinterlegen. Das Schema ist normalisiert und verhindert doppelte Datenhaltung.
+Die Kardinalitäten sichern Geschäftsregeln: Ein Fahrzeug kann gleichzeitig nur in einer Ausleihe sein, Zahlungen gehören genau zu einer Ausleihe, Nutzer dürfen mehrere Zahlungsmittel hinterlegen. Das Schema ist normalisiert und verhindert doppelte Datenhaltung.
 
 ## 5.2 Systemarchitektur (MVC)
 
@@ -93,7 +111,7 @@ flowchart LR
         ModelLayer[Modelle & Services\napp/models/* + utils]
     end
     subgraph MariaDB
-        DB[(Schema\nTables, Views,\nStored Procedures)]
+        DB[(Schema\nTables,\nStored Procedures)]
     end
     Browser -->|HTML/JS| ViewLayer
     APIClient -->|JSON| ControllerLayer
@@ -104,7 +122,9 @@ flowchart LR
     ControllerLayer --> ViewLayer
 ```
 
-Die Darstellung zeigt den klassischen MVC-Aufbau: Die Blueprints bilden die Controller-Schicht, rufen Modelle sowie Utilities auf und liefern Daten an Jinja-Views oder JSON-Antworten. Clients greifen entweder via Browser (HTML) oder API-Client (JSON) darauf zu. MariaDB stellt persistente Daten bereit; Stored Procedures und Views ergänzen die Business-Logik auf Datenbankseite.
+Die Darstellung zeigt den klassischen MVC-Aufbau: Die Blueprints bilden die Controller-Schicht, rufen Modelle sowie Utilities auf und liefern Daten an Jinja-Views oder JSON-Antworten. Clients greifen entweder via Browser (HTML) oder API-Client (JSON) darauf zu. MariaDB stellt persistente Daten bereit; Stored Procedures ergänzen die Business-Logik auf Datenbankseite.
+
+Für den Fahrten-Lifecycle werden die Stored Procedures auch tatsächlich genutzt: `start_ride` und `end_ride` rufen auf MariaDB/MySQL direkt `CALL sp_fahrt_starten(...)` bzw. `CALL sp_fahrt_beenden(...)` auf. Für SQLite-Testläufe existiert bewusst ein ORM-Fallback, damit automatisierte Tests ohne MariaDB weiterhin ausführbar bleiben.
 
 ## 5.3 Komponentenübersicht
 
@@ -120,7 +140,7 @@ graph TD
         Spec[OpenAPI Spec]
     end
     subgraph Services
-        Utils[Auth & Vehicle Utils]
+        Utils[Auth, RideFlow, Vehicle, Time Utils]
         QR[QR Generator]
     end
     subgraph Data
@@ -143,8 +163,8 @@ Die Komponenten interagieren wie folgt:
 
 - Die drei Web-Controller bedienen die Browser-UI.
 - `api_controller` stellt JSON-Endpunkte bereit und nutzt die OpenAPI-Spezifikation.
-- Utilities (Auth, Vehicle, QR) kapseln wiederverwendbare Logik.
-- Modelle greifen auf das SQL-Schema zu; Stored Procedures und Views leben in `db/schema.sql`.
+- Utilities (Auth, RideFlow, Vehicle, Time, QR) kapseln wiederverwendbare Logik.
+- Modelle greifen auf das SQL-Schema zu; Stored Procedures leben in `db/schema.sql`.
 
 ## 5.4 Sequenzdiagramme wesentlicher Abläufe
 
@@ -161,8 +181,9 @@ sequenceDiagram
     UI->>Model: Prüfe aktive Fahrt / Fahrzeugstatus
     Model->>DB: SELECT rides, vehicles
     DB-->>Model: Resultate
-    UI->>Model: ride = Ride(user, vehicle)
-    Model->>DB: INSERT ride\nUPDATE vehicle.status=in_use
+    UI->>Model: start_ride_flow(user, vehicle)
+    Model->>DB: CALL sp_fahrt_starten(user, vehicle)
+    Model->>DB: UPDATE vehicle.gps_(lat,long)
     DB-->>Model: Commit
     Model-->>UI: ride_id, Status
     UI-->>User: Erfolgsmeldung + Aktive Fahrt
@@ -182,10 +203,11 @@ sequenceDiagram
     UI->>Model: lade Ride, PaymentMethod
     Model->>DB: SELECT ride/payment
     DB-->>Model: Daten
-    UI->>Model: berechne Kosten
+    UI->>Model: end_ride_flow(ride, km, payment)
+    Model->>DB: CALL sp_fahrt_beenden(ride, km, payment)
     Model->>Util: apply_battery_drain(vehicle, minuten, km)
     Util-->>Model: aktualisierte Batterie
-    Model->>DB: UPDATE ride, vehicle\nINSERT payment
+    Model->>DB: UPDATE vehicle.akku_status
     DB-->>Model: Commit
     Model-->>UI: Ride inkl. Kosten
     UI-->>User: Bestätigung + neue Statistik
@@ -221,7 +243,7 @@ flowchart LR
     Dev["Entwicklungsrechner / CI"] -->|docker build/push| App
     App -->|SQLAlchemy| DB
     UserBrowser[[Browser]] -->|HTTP 8000| App
-    ProviderClient[[API Client]] -->|HTTPS / API| App
+    ProviderClient[[API Client]] -->|HTTP JSON /api| App
 ```
 
 `docker-entrypoint.sh` initialisiert beim Start das Schema via `scripts/init_db.py`. Konfiguration (DB-URL, Tarife, BASE_URL, Secret Key) erfolgt über Environment-Variablen bzw. `compose.yml`. Die Container sind entkoppelt, sodass MariaDB durch einen Managed Service ersetzt werden könnte. Gunicorn kann über zusätzliche Worker skaliert werden; Logs laufen über stdout und lassen sich via `docker logs` sammeln.

@@ -3,15 +3,15 @@
 Die wichtigsten funktionalen Anforderungen werden automatisiert mit Pytest überprüft. Testlauf erfolgte lokal mit Python 3.12 / pytest 8.2.1 über den Befehl:
 
 ```bash
-PYTHONPATH=. pytest
+pytest
 ```
 
-Ergebnis: **13 Tests, alle bestanden**.
+Ergebnis Gesamtsuite: **18 Tests, alle bestanden**. Für dieses Protokoll sind gemäss Aufgabenstellung **12 ausgewählte Testfälle** dokumentiert.
 
 | ID | Testfall | Durchführung | Erwartetes Ergebnis | Tatsächliches Ergebnis | Status |
 | --- | --- | --- | --- | --- | --- |
 | T01 | Registrierung Fahrer:in | `pytest tests/test_api_auth.py::test_create_user_endpoint_enforces_required_fields` | `POST /api/users` legt Account an und liefert Token, Duplikate werden abgewiesen | 201 + Token bei Erstregistrierung, 409 bei erneuter Verwendung der E-Mail | OK (automatisiert) |
-| T02 | Registrierung Anbieter | `pytest tests/test_api_providers.py::test_create_provider_endpoint_validates_and_returns_token` | `POST /api/providers` erstellt Anbieter inkl. API-Token | Anbieter wird persistiert und liefert Token, Duplikate ergeben 409 | OK (automatisiert) |
+| T02 | Registrierung Anbieter | `pytest tests/test_api_providers.py::test_create_provider_endpoint_validates_and_returns_token` | `POST /api/providers` erstellt Anbieter inkl. API-Token | Anbieter wird persistiert und liefert Token, Duplikate (Name/E-Mail) ergeben 409 | OK (automatisiert) |
 | T03 | Login Fahrer:in | `pytest tests/test_auth_web.py::test_user_login_flow_creates_session` | `POST /auth/login` leitet ins Fahrer-Dashboard um, Session enthält Nutzer-ID | Redirect auf `/dashboard`, Session `role=user`, `account_id` gesetzt | OK (automatisiert) |
 | T04 | Login Anbieter | `pytest tests/test_auth_web.py::test_provider_login_redirects_to_provider_dashboard` | Provider-Login führt zum Dashboard `/provider/dashboard` | Redirect erfolgt, Session `role=provider`, ID gesetzt | OK (automatisiert) |
 | T05 | Fahrzeug anlegen | `pytest tests/test_api_vehicles.py::test_provider_can_create_vehicle_via_api` | Anbieter kann via API ein Fahrzeug + Fahrzeugtyp anlegen | Response 201, Datensatz mit QR-Code `cargo-qr` in DB angelegt | OK (automatisiert) |
