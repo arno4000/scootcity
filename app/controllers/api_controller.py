@@ -4,7 +4,7 @@ from flask import Blueprint, current_app, jsonify, render_template, request
 
 from app.extensions import db
 from app.models import PaymentMethod, Provider, Ride, User, Vehicle, VehicleType
-from app.utils.auth import role_required, token_auth_required
+from app.utils.auth import token_auth_required
 from app.utils.db import get_or_404
 from app.utils.qr import build_vehicle_qr_payload, generate_qr_png
 from app.utils.ride_flow import RideFlowError, end_ride_flow, start_ride_flow
@@ -341,7 +341,6 @@ def openapi_document():
 
 
 @api_bp.route("/docs")
-@role_required(["provider"])
 def swagger_ui():
     return render_template("api/docs.html")
 
