@@ -4,7 +4,7 @@ Webanwendung als Praxisarbeit für DBWE. Die App nutzt Flask (Python 3.11+) mit 
 
 ## Anforderungen & Features
 
-- Registrierung & Login für Fahrer:innen (`nutzer`) und Verleihanbieter (`verleihanbieter`) mit eindeutiger E-Mail; Fahrer:innen zusätzlich mit eindeutigem Benutzernamen.
+- Registrierung & Login für Fahrer (`nutzer`) und Verleihanbieter (`verleihanbieter`) mit eindeutiger E-Mail; Fahrer zusätzlich mit eindeutigem Benutzernamen.
 - Verwaltung von Fahrzeugflotten inklusive Status, Akku und Position.
 - Fahrer-Dashboard mit Fahrzeugbuchung, Beenden von Fahrten inkl. Kostenberechnung und Payment Flow.
 - Speicherung aller Fachobjekte gemäss ERM (`erm.mmd`).

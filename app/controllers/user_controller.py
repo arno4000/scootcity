@@ -127,7 +127,7 @@ def unlock_vehicle(vehicle_id: int):
     account, role = get_current_account()
 
     if request.method == "POST":
-        # Unlock ist nur fuer Fahrer:innen gedacht.
+        # Unlock ist nur fuer Fahrer gedacht.
         if role != "user":
             flash("Bitte als Fahrer:in anmelden.", "warning")
             return redirect(url_for("auth.login"))
