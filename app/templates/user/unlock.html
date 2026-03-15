@@ -17,7 +17,7 @@
             <button class="btn btn-primary" {% if vehicle.status != 'verfuegbar' %}disabled{% endif %}>Fahrt jetzt starten</button>
           </form>
         {% else %}
-          <p>Melden Sie sich als Fahrer:in an, um diesen Scooter zu starten.</p>
+          <p>Melden Sie sich als Fahrer an, um diesen Scooter zu starten.</p>
           <a href="{{ url_for('auth.login') }}" class="btn btn-outline-primary">Login</a>
         {% endif %}
       </div>

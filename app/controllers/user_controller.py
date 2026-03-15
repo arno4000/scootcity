@@ -129,7 +129,7 @@ def unlock_vehicle(vehicle_id: int):
     if request.method == "POST":
         # Unlock ist nur fuer Fahrer gedacht.
         if role != "user":
-            flash("Bitte als Fahrer:in anmelden.", "warning")
+            flash("Bitte als Fahrer anmelden.", "warning")
             return redirect(url_for("auth.login"))
         if vehicle.status != "verfuegbar":
             flash("Fahrzeug ist aktuell nicht verfügbar.", "danger")
