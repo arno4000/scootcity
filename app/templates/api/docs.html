@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="row">
+  <div class="col-12">
+    <h2 class="mb-3">ScootCity API – Swagger UI</h2>
+    <p class="text-muted">Authentifizieren Sie sich über <code>POST /api/token</code> und tragen Sie das erhaltene Token als "Bearer &lt;token&gt;" in der Authorize-Maske ein.</p>
+  </div>
+</div>
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css">
+<div id="swagger-ui"></div>
+<script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+<script>
+  window.addEventListener('load', function () {
+    window.ui = SwaggerUIBundle({
+      url: '{{ url_for('api.openapi_document') }}',
+      dom_id: '#swagger-ui',
+      presets: [SwaggerUIBundle.presets.apis],
+      layout: 'BaseLayout'
+    });
+  });
+</script>
+{% endblock %}

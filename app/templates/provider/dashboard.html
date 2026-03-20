@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h2>Flotte von {{ provider.name }}</h2>
+  <a href="{{ url_for('provider.create_vehicle') }}" class="btn btn-primary">Fahrzeug hinzufügen</a>
+</div>
+<table class="table table-hover">
+  <thead>
+    <tr>
+      <th>QR-Code</th>
+      <th>Typ</th>
+      <th>Status</th>
+      <th>Batterie</th>
+      <th>Letzte Position</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for vehicle in vehicles %}
+      <tr>
+        <td>
+          <div class="d-flex align-items-center gap-2">
+            <img src="data:image/png;base64,{{ qr_codes.get(vehicle.id) }}" alt="QR Code" width="72" height="72" class="border rounded">
+            <div>
+              <div class="fw-semibold">{{ vehicle.qr_code }}</div>
+              <small class="text-muted">Scan zum Entsperren</small>
+            </div>
+          </div>
+        </td>
+        <td>{{ vehicle.vehicle_type.name if vehicle.vehicle_type else '-' }}</td>
+        <td>{{ vehicle.status }}</td>
+        <td>{{ vehicle.battery_level }}%</td>
+        <td>{{ vehicle.gps_lat }}, {{ vehicle.gps_long }}</td>
+        <td>
+          <form class="row g-2" method="post" action="{{ url_for('provider.update_vehicle', vehicle_id=vehicle.id) }}">
+            <div class="col-md-3">
+              <select class="form-select" name="status">
+                {% for state in ['verfuegbar','wartung','deaktiviert'] %}
+                  <option value="{{ state }}" {% if vehicle.status == state %}selected{% endif %}>{{ state }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-3">
+              <input type="number" class="form-control" name="battery_level" value="{{ vehicle.battery_level }}" step="1">
+            </div>
+            <div class="col-md-2">
+              <input type="number" class="form-control" name="gps_lat" value="{{ vehicle.gps_lat }}" step="0.0001">
+            </div>
+            <div class="col-md-2">
+              <input type="number" class="form-control" name="gps_long" value="{{ vehicle.gps_long }}" step="0.0001">
+            </div>
+            <div class="col-md-1">
+              <button class="btn btn-sm btn-outline-secondary">OK</button>
+            </div>
+          </form>
+        </td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

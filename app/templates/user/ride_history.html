@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>Fahrtenhistorie</h2>
+<table class="table">
+  <thead>
+    <tr>
+      <th>Start</th>
+      <th>Ende</th>
+      <th>Fahrzeug</th>
+      <th>KM</th>
+      <th>Kosten</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for ride in rides %}
+      <tr>
+        <td>{{ ride.start_time.strftime('%d.%m.%Y %H:%M') if ride.start_time }}</td>
+        <td>{{ ride.end_time.strftime('%d.%m.%Y %H:%M') if ride.end_time else '-' }}</td>
+        <td>{{ ride.vehicle.vehicle_type.name if ride.vehicle.vehicle_type else '-' }}</td>
+        <td>{{ ride.kilometers }}</td>
+        <td>{{ ride.cost }} CHF</td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

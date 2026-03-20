@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="text-center py-5">
+  <h1 class="mb-4">ScootCity – Plattform für E-Scooter Sharing</h1>
+  <p class="lead">Registrieren Sie sich als Fahrer, buchen Sie verfügbare Scooter oder verwalten Sie als Anbieter Ihre Flotte.</p>
+  <a href="{{ url_for('auth.register') }}" class="btn btn-primary me-2">Jetzt starten</a>
+  <a href="{{ url_for('auth.provider_register') }}" class="btn btn-outline-primary">Anbieter werden</a>
+</div>
+{% endblock %}
